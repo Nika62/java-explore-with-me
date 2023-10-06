@@ -39,7 +39,8 @@ public class BaseClient {
         }
         return prepareGatewayResponse(statsResponse);
     }
-     private static ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
+
+    private static ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
         if (response.getStatusCode().is2xxSuccessful()) {
             return response;
         }

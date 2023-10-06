@@ -10,8 +10,9 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.stats.dto.EndpointHitDto;
 
 @Service
-public class HitClient extends BaseClient{
+public class HitClient extends BaseClient {
     private static final String API_PREFIX = "/hit";
+
     @Autowired
     public HitClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
 

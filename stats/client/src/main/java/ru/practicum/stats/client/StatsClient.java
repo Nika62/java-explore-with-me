@@ -10,7 +10,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import java.util.Map;
 import java.util.Optional;
 
-public class StatsClient extends BaseClient{
+public class StatsClient extends BaseClient {
     private static final String API_PREFIX = "/stats";
 
     @Autowired
@@ -23,6 +23,7 @@ public class StatsClient extends BaseClient{
                         .build()
         );
     }
+
     public ResponseEntity<Object> getStats(String start, String end, Optional<String[]> uris, Boolean unique) {
         Map<String, Object> parameters = Map.of(
                 "start", start,
