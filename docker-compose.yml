@@ -15,7 +15,7 @@ services:
     image: postgres:14-alpine
     container_name: stats_db_container
     ports:
-      - "5458:5433"
+      - "5458:5432"
     restart: always
     environment:
       POSTGRES_PASSWORD: "postgres"

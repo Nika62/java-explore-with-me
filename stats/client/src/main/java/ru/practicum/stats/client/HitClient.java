@@ -23,7 +23,7 @@ public class HitClient extends BaseClient{
         );
     }
 
-    public ResponseEntity<Object> add(long userId, EndpointHitDto endpointHitDto) {
+    public ResponseEntity<Object> add(EndpointHitDto endpointHitDto) {
         return post("", endpointHitDto);
     }
 }
