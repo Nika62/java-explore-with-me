@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.stats.dto.EndpointHitDto;
 import ru.practicum.stats.dto.StatsDto;
 
-
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +29,7 @@ public class StatsController {
     @GetMapping("/stats")
     public List<StatsDto> getStats(@RequestParam String start,
                                    @RequestParam String end,
-                                   @RequestParam(required = false) Optional <String[]> uris,
+                                   @RequestParam(required = false) Optional<String[]> uris,
                                    @RequestParam(defaultValue = "false") Boolean unique) {
         return statsService.getState(start,end,uris, unique);
     }
