@@ -1,13 +1,14 @@
 package ru.practicum.stats.client;
 
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
+
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 public class BaseClient {
     protected final RestTemplate rest;
@@ -17,27 +18,25 @@ public class BaseClient {
     }
 
     protected <T> ResponseEntity<Object> post(String path, T body) {
-        return post(path, body);
-    }
-
-    protected ResponseEntity<Object> get(String path, @Nullable Map<String, Object> parameters) {
-        return makeAndSendRequest(HttpMethod.GET, path, parameters, null);
-    }
-
-    private <T> ResponseEntity<Object> makeAndSendRequest(HttpMethod method, String path, @Nullable Map<String, Object> parameters, T body) {
         HttpEntity<T> requestEntity = new HttpEntity<>(body);
-
         ResponseEntity<Object> statsResponse;
         try {
-            if (parameters != null) {
-                statsResponse = rest.exchange(path, method, requestEntity, Object.class, parameters);
-            } else {
-                statsResponse = rest.exchange(path, method, requestEntity, Object.class);
-            }
+            statsResponse = rest.exchange(path, POST, requestEntity, Object.class);
         } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsByteArray());
         }
-        return prepareGatewayResponse(statsResponse);
+
+        return prepareGatewayResponse(prepareGatewayResponse(statsResponse));
+    }
+
+    protected ResponseEntity<Object> get(String path, Map<String, Object> parameters) {
+        ResponseEntity<Object> statsResponse;
+        try {
+            statsResponse = rest.exchange(path, GET, null, Object.class, parameters);
+        } catch (HttpStatusCodeException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsByteArray());
+        }
+        return prepareGatewayResponse(prepareGatewayResponse(statsResponse));
     }
 
     private static ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
