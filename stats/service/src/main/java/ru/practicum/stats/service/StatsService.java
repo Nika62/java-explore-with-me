@@ -7,6 +7,7 @@ import ru.practicum.stats.dto.StatsDto;
 
 import java.util.List;
 import java.util.Optional;
+
 @Service
 public interface StatsService {
 
