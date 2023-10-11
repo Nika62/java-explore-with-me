@@ -1,10 +1,13 @@
 package ru.practicum.ewm.dto.event;
 
+import lombok.Data;
 import ru.practicum.ewm.dto.category.CategoryDto;
 import ru.practicum.ewm.dto.user.UserShortDto;
 import ru.practicum.ewm.model.Location;
 
+@Data
 public class EventFullDto {
+    private long id;
     private String annotation;
     private CategoryDto category;
     private long confirmedRequests;
@@ -13,7 +16,6 @@ public class EventFullDto {
     private String description;
     //время на которое намечено событие
     private String eventDate;
-    private long id;
     private UserShortDto initiator;
     private Location location;
     private Boolean paid;

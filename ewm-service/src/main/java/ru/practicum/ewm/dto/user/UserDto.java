@@ -3,17 +3,17 @@ package ru.practicum.ewm.dto.user;
 import lombok.Data;
 
 import javax.validation.constraints.Email;
-import javax.validation.constraints.Max;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 
 @Data
 public class UserDto {
-    @Email
-    @NotBlank
-    @Max(255)
-    private String email;
     private long id;
+    @Email
+    @Size(max = 254, min = 6)
     @NotBlank
-    @Max(value = 255)
+    private String email;
+    @Size(max = 250, min = 2)
+    @NotBlank
     private String name;
 }
