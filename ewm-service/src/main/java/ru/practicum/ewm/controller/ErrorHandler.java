@@ -8,10 +8,12 @@ import ru.practicum.ewm.model.exception.CustomParentException;
 import ru.practicum.ewm.model.exception.DeletionBlockedException;
 import ru.practicum.ewm.model.exception.ObjectAlreadyExistsException;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
+import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.I_AM_A_TEAPOT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -22,7 +24,7 @@ public class ErrorHandler {
 
     @ExceptionHandler({ObjectAlreadyExistsException.class, DeletionBlockedException.class})
     @ResponseStatus(CONFLICT)
-    ApiError handleObjectAlreadyException(final CustomParentException e) {
+    ApiError handleConflictException(final CustomParentException e) {
         return new ApiError(String.valueOf(CONFLICT), e.getReason(), e.getMessage(), convertToString(e.getTimestamp()));
     }
 
@@ -30,6 +32,12 @@ public class ErrorHandler {
     @ResponseStatus(NOT_FOUND)
     ApiError handleNotFoundException(final ObjectNotFoundException e) {
         return new ApiError(String.valueOf(NOT_FOUND), e.getReason(), e.getMessage(), convertToString(e.getTimestamp()));
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(BAD_REQUEST)
+    ApiError handleEventDateTimeException(final ObjectNotSatisfyRulesException e) {
+        return new ApiError(String.valueOf(BAD_REQUEST), e.getReason(), e.getMessage(), convertToString(e.getTimestamp()));
     }
 
     @ExceptionHandler

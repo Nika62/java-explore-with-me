@@ -2,6 +2,7 @@ package ru.practicum.ewm.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.category.CategoryDto;
 import ru.practicum.ewm.mapper.CategoryMapper;
@@ -14,6 +15,8 @@ import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.service.CategoryService;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -44,25 +47,38 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDto updateCategory(long catId, CategoryDto categoryDto) {
         checkCategoryExists(catId);
-        try {
-            return mapper.convertCategoryToCategoryDto(
-                    categoryRepository.save(new Category(catId, categoryDto.getName())));
-        } catch (DataIntegrityViolationException e) {
-            throw new ObjectAlreadyExistsException("Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
-        }
+        categoryDto.setId(catId);
+        return createCategory(categoryDto);
+    }
 
+    @Override
+    public List<CategoryDto> getCategories(int from, int size) {
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        return categoryRepository.findAll(pageRequest).stream()
+                .map(mapper::convertCategoryToCategoryDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public CategoryDto getCategoryById(long catId) {
+        Category category = categoryRepository.findById(catId).orElseThrow(
+                this::getNotFoundException);
+        return mapper.convertCategoryToCategoryDto(category);
     }
 
     private void checkCategoryExists(long catId) {
         if (!categoryRepository.existsById(catId)) {
-            throw new ObjectNotFoundException("The required object was not found.", "User with id=" + catId + " was not found", LocalDateTime.now());
+            getNotFoundException();
         }
     }
 
     private void checkCategoryEmpty(long catId) {
         if (eventRepository.existsEventByCategoryId(catId)) {
-            throw new DeletionBlockedException("For the requested operation the conditions are not met.", "The category is not empty", LocalDateTime.now());
+            getNotFoundException();
         }
+    }
+
+    private ObjectNotFoundException getNotFoundException() {
+        throw new DeletionBlockedException("For the requested operation the conditions are not met.", "The category is not empty", LocalDateTime.now());
     }
 
 

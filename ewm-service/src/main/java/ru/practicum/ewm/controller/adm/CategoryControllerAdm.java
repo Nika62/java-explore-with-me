@@ -20,7 +20,7 @@ import static org.springframework.http.HttpStatus.NO_CONTENT;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/categories")
-public class CategoryController {
+public class CategoryControllerAdm {
     private final CategoryService categoryService;
 
     @PostMapping

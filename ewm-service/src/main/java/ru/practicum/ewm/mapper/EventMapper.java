@@ -7,6 +7,7 @@ import ru.practicum.ewm.dto.event.NewEventDto;
 import ru.practicum.ewm.model.Category;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.Location;
+import ru.practicum.ewm.model.enums.PublicationStatus;
 
 import java.util.Objects;
 
@@ -31,9 +32,9 @@ public class EventMapper {
         event.setEventDate(convertToDateTime(newEventDto.getEventDate()));
         event.setLocationLat(newEventDto.getLocation().getLat());
         event.setLocationLon(newEventDto.getLocation().getLon());
-        event.setPaid(newEventDto.getPaid());
-        event.setParticipantLimit(newEventDto.getParticipantLimit());
-        event.setRequestModeration(newEventDto.getRequestModeration());
+        event.setPaid(Objects.nonNull(newEventDto.getPaid()) ? newEventDto.getPaid() : false);
+        event.setParticipantLimit(Objects.nonNull(newEventDto.getParticipantLimit()) ? newEventDto.getParticipantLimit() : 0);
+        event.setRequestModeration(Objects.nonNull(newEventDto.getRequestModeration()) ? newEventDto.getRequestModeration() : true);
         event.setTitle(newEventDto.getTitle());
 
         return event;
@@ -57,6 +58,8 @@ public class EventMapper {
         eventFullDto.setParticipantLimit(event.getParticipantLimit());
         eventFullDto.setPublishedOn((Objects.nonNull(event.getPublishedOn()) ? convertToString(event.getPublishedOn()) : null));
         eventFullDto.setRequestModeration(event.getRequestModeration());
+        eventFullDto.setState(PublicationStatus.valueOf(event.getState()));
+        eventFullDto.setTitle(event.getTitle());
 
         return eventFullDto;
     }
