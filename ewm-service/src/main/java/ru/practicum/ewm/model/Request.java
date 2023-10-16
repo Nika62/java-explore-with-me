@@ -1,9 +1,7 @@
-package ru.practicum.ewm.model.exception;
+package ru.practicum.ewm.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.practicum.ewm.model.Event;
-import ru.practicum.ewm.model.User;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

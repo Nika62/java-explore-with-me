@@ -6,18 +6,20 @@ import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.request.RequestDto;
 import ru.practicum.ewm.mapper.RequestMapper;
 import ru.practicum.ewm.model.Event;
+import ru.practicum.ewm.model.Request;
 import ru.practicum.ewm.model.User;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
 import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
-import ru.practicum.ewm.model.exception.Request;
 import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.repository.RequestRepository;
+import ru.practicum.ewm.repository.UserRepository;
 import ru.practicum.ewm.service.RequestService;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
 import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
 import static ru.practicum.ewm.model.enums.RequestsStatus.PENDING;
@@ -29,6 +31,7 @@ public class RequestServiceIml implements RequestService {
     private final RequestRepository requestRepository;
     private final RequestMapper requestMapper;
     private final EventRepository eventRepository;
+    private final UserRepository userRepository;
 
     @Override
     public RequestDto createRequest(long userId, long eventId) {
@@ -46,7 +49,19 @@ public class RequestServiceIml implements RequestService {
 
     @Override
     public List<RequestDto> getRequests(long userId) {
-        return requestRepository.getRequestByRequestorId(userId).stream().map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
+        if (!userRepository.existsById(userId)) {
+            throw new ObjectNotFoundException("The required object was not found.", "User with id=" + userId + "was not found", LocalDateTime.now());
+        }
+        return requestRepository.getRequestByRequester(userId).stream().map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public RequestDto cancelRequest(long userId, long requestId) {
+        Request request = requestRepository.getRequestByIdAndRequester(requestId, userId).orElseThrow(
+                () -> new ObjectNotFoundException("The required object was not found.", "Request with id=" + requestId + " was not found", LocalDateTime.now())
+        );
+        request.setStatus(CANCELED.name());
+        return requestMapper.convertRequestToRequestDto(requestRepository.save(request));
     }
 
     private void checkUserIsInitiator(Event event, long userId) {
@@ -94,7 +109,7 @@ public class RequestServiceIml implements RequestService {
     private void checkRequestIsValid(Event event, long userId) {
         checkUserIsInitiator(event, userId);
         checkStateEvenIsPublished(event);
-        checkStateEvenIsPublished(event);
+        checkEventLimitNotExceeded(event);
     }
 
     private Event getEvent(long eventId) {

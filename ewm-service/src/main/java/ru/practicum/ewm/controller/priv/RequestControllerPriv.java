@@ -2,6 +2,7 @@ package ru.practicum.ewm.controller.priv;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,5 +31,10 @@ public class RequestControllerPriv {
     @GetMapping
     private List<RequestDto> getRequests(@PathVariable long userId) {
         return requestService.getRequests(userId);
+    }
+
+    @PatchMapping("/{requestId}/cancel")
+    public RequestDto cancelRequest(@PathVariable long userId, @PathVariable long requestId) {
+        return requestService.cancelRequest(userId, requestId);
     }
 }

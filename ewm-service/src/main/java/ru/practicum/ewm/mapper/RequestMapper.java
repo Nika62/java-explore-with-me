@@ -2,7 +2,7 @@ package ru.practicum.ewm.mapper;
 
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.request.RequestDto;
-import ru.practicum.ewm.model.exception.Request;
+import ru.practicum.ewm.model.Request;
 
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 
