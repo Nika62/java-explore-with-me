@@ -105,6 +105,7 @@ public class EventServiceImpl implements EventService {
         return selectMethodByParameters(users, states, categories, start, end, pageRequest).stream()
                 .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
     }
+    //TO DO
 
     @Override
     public List<EventFullDto> getEvents(Optional<String> text, Optional<Long[]> categories, Optional<Boolean> paid,

@@ -3,6 +3,8 @@ package ru.practicum.ewm.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import ru.practicum.ewm.dto.request.EventRequestStatusUpdateRequestDto;
+import ru.practicum.ewm.dto.request.EventRequestStatusUpdateResultDto;
 import ru.practicum.ewm.dto.request.RequestDto;
 import ru.practicum.ewm.mapper.RequestMapper;
 import ru.practicum.ewm.model.Event;
@@ -23,6 +25,7 @@ import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
 import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
 import static ru.practicum.ewm.model.enums.RequestsStatus.PENDING;
+import static ru.practicum.ewm.model.enums.RequestsStatus.REJECTED;
 
 @Service
 @RequiredArgsConstructor
@@ -52,16 +55,45 @@ public class RequestServiceIml implements RequestService {
         if (!userRepository.existsById(userId)) {
             throw new ObjectNotFoundException("The required object was not found.", "User with id=" + userId + "was not found", LocalDateTime.now());
         }
-        return requestRepository.getRequestByRequester(userId).stream().map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
+        return requestRepository.getRequestsByRequesterId(userId).stream().map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
     }
 
     @Override
     public RequestDto cancelRequest(long userId, long requestId) {
-        Request request = requestRepository.getRequestByIdAndRequester(requestId, userId).orElseThrow(
+        Request request = requestRepository.getRequestByIdAndRequesterId(requestId, userId).orElseThrow(
                 () -> new ObjectNotFoundException("The required object was not found.", "Request with id=" + requestId + " was not found", LocalDateTime.now())
         );
         request.setStatus(CANCELED.name());
         return requestMapper.convertRequestToRequestDto(requestRepository.save(request));
+    }
+
+    @Override
+    public List<RequestDto> getUserEventRequests(long userId, long eventId) {
+        return requestRepository.getRequestsByEventIdAndEventInitiatorId(eventId, userId).stream()
+                .map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public EventRequestStatusUpdateResultDto reviewEventRequests(Long userId, Long eventId, EventRequestStatusUpdateRequestDto body) {
+        EventRequestStatusUpdateResultDto result = new EventRequestStatusUpdateResultDto();
+        Event event = getEvent(eventId);
+        List<Long> requestsIds = body.getRequestIds();
+        String status = body.getStatus();
+        checkEventLimitNotExceeded(event);
+
+        if (status.equals(CONFIRMED.name())) {
+            if (event.getParticipantLimit() == 0 || event.getRequestModeration().equals(false)) {
+                result.setConfirmedRequests(requestRepository.getRequestsByIdIn(requestsIds).stream()
+                        .map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList()));
+                event.setConfirmedRequests(event.getConfirmedRequests() + requestsIds.size());
+                eventRepository.save(event);
+                return result;
+            }
+            return updateStatusEventRequests(requestsIds, event.getParticipantLimit() - event.getConfirmedRequests(), event);
+        }
+        result.setRejectedRequests(updateStatusEventRequests(requestsIds, status));
+        return result;
+
     }
 
     private void checkUserIsInitiator(Event event, long userId) {
@@ -78,7 +110,7 @@ public class RequestServiceIml implements RequestService {
     }
 
     private void checkEventLimitNotExceeded(Event event) {
-        if (event.getParticipantLimit() - event.getConfirmedRequests() < 0) {
+        if (event.getParticipantLimit() != 0 && event.getParticipantLimit() - event.getConfirmedRequests() <= 0) {
             getNotSatisfyRulesException("The event has reached the limit of requests for participation");
         }
     }
@@ -118,4 +150,31 @@ public class RequestServiceIml implements RequestService {
                         "Event with id=" + eventId + "was not found", LocalDateTime.now())
         );
     }
+
+    private EventRequestStatusUpdateResultDto updateStatusEventRequests(List<Long> allRequests, Long freeSeats, Event event) {
+        EventRequestStatusUpdateResultDto result = new EventRequestStatusUpdateResultDto();
+
+        if (allRequests.size() <= freeSeats) {
+            result.setConfirmedRequests(updateStatusEventRequests(allRequests, CONFIRMED.name()));
+            event.setConfirmedRequests(event.getConfirmedRequests() + allRequests.size());
+            eventRepository.save(event);
+            return result;
+        }
+        List<Long> confirmedRequestsIds = allRequests.stream().limit(freeSeats).collect(Collectors.toList());
+
+        List<Long> rejectedRequestsIds = allRequests.stream().filter(id -> !confirmedRequestsIds.contains(id)).collect(Collectors.toList());
+
+        result.setConfirmedRequests(updateStatusEventRequests(confirmedRequestsIds, CONFIRMED.name()));
+        result.setRejectedRequests(updateStatusEventRequests(rejectedRequestsIds, REJECTED.name()));
+        event.setConfirmedRequests(event.getConfirmedRequests() + confirmedRequestsIds.size());
+        eventRepository.save(event);
+        return result;
+    }
+
+    private List<RequestDto> updateStatusEventRequests(List<Long> requestsIds, String status) {
+        requestRepository.updateAllRequestsStatus(requestsIds, status);
+        return requestRepository.getRequestsByIdIn(requestsIds)
+                .stream().map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
+    }
+
 }

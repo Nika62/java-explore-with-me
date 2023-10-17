@@ -35,5 +35,4 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE  lower(e.annotation) like ?1 or lower(e.description) like ?1 AND e.category.id  IN ?2 AND e.paid =?3 AND  e.eventDate BETWEEN ?4 AND ?5")
     Page<Event> getEventByTextCategoriesPaid(String text, List<Long> categories, boolean paid, LocalDateTime start, LocalDateTime end,
                                              boolean onlyAvailable, PageRequest pageRequest);
-
 }

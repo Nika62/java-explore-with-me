@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
+import ru.practicum.ewm.dto.request.EventRequestStatusUpdateRequestDto;
+import ru.practicum.ewm.dto.request.EventRequestStatusUpdateResultDto;
+import ru.practicum.ewm.dto.request.RequestDto;
 import ru.practicum.ewm.service.EventService;
+import ru.practicum.ewm.service.RequestService;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
@@ -27,6 +31,7 @@ import static org.springframework.http.HttpStatus.CREATED;
 public class EventControllerPriv {
 
     private final EventService eventService;
+    private final RequestService requestService;
 
     @PostMapping
     @ResponseStatus(CREATED)
@@ -50,5 +55,15 @@ public class EventControllerPriv {
     @PatchMapping("/{eventId}")
     public EventFullDto updateEvent(@PathVariable long userId, @PathVariable long eventId, @RequestBody NewEventDto newEventDto) {
         return eventService.updateEventByUser(userId, eventId, newEventDto);
+    }
+
+    @GetMapping("/{eventId}/requests")
+    public List<RequestDto> getUserEventRequests(@PathVariable long userId, @PathVariable long eventId) {
+        return requestService.getUserEventRequests(userId, eventId);
+    }
+
+    @PatchMapping("/{eventId}/requests")
+    public EventRequestStatusUpdateResultDto getUserEventRequests(@PathVariable long userId, @PathVariable long eventId, @RequestBody EventRequestStatusUpdateRequestDto body) {
+        return requestService.reviewEventRequests(userId, eventId, body);
     }
 }
