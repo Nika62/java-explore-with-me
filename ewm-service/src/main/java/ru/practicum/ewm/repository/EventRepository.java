@@ -3,16 +3,18 @@ package ru.practicum.ewm.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import ru.practicum.ewm.model.Event;
+import ru.practicum.ewm.model.Request;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface EventRepository extends JpaRepository<Event, Long> {
+public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Request> {
 
     boolean existsEventByCategoryId(long id);
 
@@ -35,4 +37,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE  lower(e.annotation) like ?1 or lower(e.description) like ?1 AND e.category.id  IN ?2 AND e.paid =?3 AND  e.eventDate BETWEEN ?4 AND ?5")
     Page<Event> getEventByTextCategoriesPaid(String text, List<Long> categories, boolean paid, LocalDateTime start, LocalDateTime end,
                                              boolean onlyAvailable, PageRequest pageRequest);
+
+    List<Event> getEventsByIdIn(List<Long> eventsIds);
 }

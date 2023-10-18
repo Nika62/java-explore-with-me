@@ -11,11 +11,8 @@ public class CategoryMapper {
         if (category == null) {
             return null;
         }
-        CategoryDto categoryDto = new CategoryDto();
-        categoryDto.setId(category.getId());
-        categoryDto.setName(category.getName());
 
-        return categoryDto;
+        return new CategoryDto(category.getId(), category.getName());
     }
 
     public Category convertCategoryDtoToCategory(CategoryDto categoryDto) {

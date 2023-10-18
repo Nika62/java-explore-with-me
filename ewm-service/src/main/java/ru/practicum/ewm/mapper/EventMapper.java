@@ -2,8 +2,11 @@ package ru.practicum.ewm.mapper;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import ru.practicum.ewm.dto.category.CategoryDto;
 import ru.practicum.ewm.dto.event.EventFullDto;
+import ru.practicum.ewm.dto.event.EventShortDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
+import ru.practicum.ewm.dto.user.UserShortDto;
 import ru.practicum.ewm.model.Category;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.Location;
@@ -63,5 +66,22 @@ public class EventMapper {
         eventFullDto.setTitle(event.getTitle());
 
         return eventFullDto;
+    }
+
+    public EventShortDto convertEventToEventShortDto(Event event) {
+        if (event == null) {
+            return null;
+        }
+        EventShortDto eventShortDto = new EventShortDto();
+        eventShortDto.setId(event.getId());
+        eventShortDto.setAnnotation(event.getAnnotation());
+        eventShortDto.setCategory(new CategoryDto(event.getCategory().getId(), event.getCategory().getName()));
+        eventShortDto.setEventDate(convertToString(event.getEventDate()));
+        eventShortDto.setInitiator(new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()));
+        eventShortDto.setPaid(event.getPaid());
+        eventShortDto.setTitle(event.getTitle());
+        eventShortDto.setConfirmedRequests(event.getConfirmedRequests());
+
+        return eventShortDto;
     }
 }
