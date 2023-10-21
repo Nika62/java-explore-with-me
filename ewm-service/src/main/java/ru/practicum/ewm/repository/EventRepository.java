@@ -7,14 +7,13 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import ru.practicum.ewm.model.Event;
-import ru.practicum.ewm.model.Request;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Request> {
+public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
     boolean existsEventByCategoryId(long id);
 
@@ -39,4 +38,6 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
                                              boolean onlyAvailable, PageRequest pageRequest);
 
     List<Event> getEventsByIdIn(List<Long> eventsIds);
+
+
 }

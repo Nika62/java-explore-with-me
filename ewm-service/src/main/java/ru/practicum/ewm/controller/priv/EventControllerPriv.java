@@ -1,15 +1,7 @@
 package ru.practicum.ewm.controller.priv;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
 import ru.practicum.ewm.dto.request.EventRequestStatusUpdateRequestDto;
@@ -18,6 +10,7 @@ import ru.practicum.ewm.dto.request.RequestDto;
 import ru.practicum.ewm.service.EventService;
 import ru.practicum.ewm.service.RequestService;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
@@ -48,13 +41,13 @@ public class EventControllerPriv {
     }
 
     @GetMapping("/{eventId}")
-    public EventFullDto getEventById(@PathVariable long userId, @PathVariable long eventId) {
-        return eventService.getEventByIdAndInitiator(userId, eventId);
+    public EventFullDto getEventById(@PathVariable long userId, @PathVariable long eventId, HttpServletRequest request) {
+        return eventService.getEventByIdAndInitiator(userId, eventId, request);
     }
 
     @PatchMapping("/{eventId}")
-    public EventFullDto updateEvent(@PathVariable long userId, @PathVariable long eventId, @RequestBody NewEventDto newEventDto) {
-        return eventService.updateEventByUser(userId, eventId, newEventDto);
+    public EventFullDto updateEvent(@PathVariable long userId, @PathVariable long eventId, @RequestBody NewEventDto newEventDto, HttpServletRequest request) {
+        return eventService.updateEventByUser(userId, eventId, newEventDto, request);
     }
 
     @GetMapping("/{eventId}/requests")

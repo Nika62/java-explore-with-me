@@ -3,20 +3,31 @@ package ru.practicum.ewm.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
+import ru.practicum.ewm.dto.event.SearchFilterEvent;
+import ru.practicum.ewm.dto.event.SearchFilterEventAdm;
 import ru.practicum.ewm.mapper.EventMapper;
 import ru.practicum.ewm.model.Category;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.User;
+import ru.practicum.ewm.model.enums.EventSortParameter;
 import ru.practicum.ewm.model.enums.StateAction;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
 import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
 import ru.practicum.ewm.model.exception.ValidationException;
 import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.service.EventService;
+import ru.practicum.stats.client.HitClient;
+import ru.practicum.stats.client.StatsClient;
+import ru.practicum.stats.dto.EndpointHitDto;
+import ru.practicum.stats.dto.StatsDto;
 
+import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -25,12 +36,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
-import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
-import static ru.practicum.ewm.model.enums.PublicationStatus.PENDING;
-import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.StateAction.PUBLISH_EVENT;
-import static ru.practicum.ewm.model.enums.StateAction.REJECT_EVENT;
-import static ru.practicum.ewm.model.enums.StateAction.SEND_TO_REVIEW;
+import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
+import static ru.practicum.ewm.model.enums.EventSortParameter.VIEWS;
+import static ru.practicum.ewm.model.enums.PublicationStatus.*;
+import static ru.practicum.ewm.model.enums.StateAction.*;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +47,10 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper mapper;
+    private final EventSpecification eventSpecification;
+    private final HitClient hitClient;
+    private final StatsClient statsClient;
+
 
     @Override
     public EventFullDto createEvent(long userId, NewEventDto newEventDto) {
@@ -59,24 +72,27 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventFullDto getEventByIdAndInitiator(long userId, long eventId) {
-        Event event = getEventByIdOrException(userId, eventId);
-        return mapper.convertEventToEventFullDto(event);
+    public EventFullDto getEventByIdAndInitiator(long userId, long eventId, HttpServletRequest request) {
+        EventFullDto eventFullDto = mapper.convertEventToEventFullDto(getEventByIdOrException(userId, eventId));
+        setView(eventFullDto, request);
+        return eventFullDto;
     }
 
     @Override
-    public EventFullDto updateEventByUser(long userId, long eventId, NewEventDto newEventDto) {
+    public EventFullDto updateEventByUser(long userId, long eventId, NewEventDto newEventDto, HttpServletRequest request) {
         Event event = getEventByIdOrException(userId, eventId);
         checkStateEvent(event);
         setEventParameters(event, newEventDto);
         if (Objects.nonNull(newEventDto.getStateAction())) {
             setStateEvent(newEventDto.getStateAction(), event);
         }
-        return mapper.convertEventToEventFullDto(eventRepository.save(event));
+        EventFullDto eventFullDto = mapper.convertEventToEventFullDto(eventRepository.save(event));
+        setView(eventFullDto, request);
+        return eventFullDto;
     }
 
     @Override
-    public EventFullDto updateEventByAdmin(long eventId, NewEventDto newEventDto) {
+    public EventFullDto updateEventByAdmin(long eventId, NewEventDto newEventDto, HttpServletRequest request) {
         Event event = getEventByIdOrException(eventId);
         checkStateEvent(event);
         setEventParameters(event, newEventDto);
@@ -93,34 +109,65 @@ public class EventServiceImpl implements EventService {
             setStateEvent(stateAction, event);
         }
 
-        return mapper.convertEventToEventFullDto(eventRepository.save(event));
+        EventFullDto eventFullDto = mapper.convertEventToEventFullDto(eventRepository.save(event));
+        setView(eventFullDto, request);
+        return eventFullDto;
     }
 
     @Override
-    public List<EventFullDto> getEventsForAdmin(Optional<Long[]> users, String[] states, Optional<Long[]> categories,
+    public List<EventFullDto> getEventsForAdmin(Optional<Long[]> users, Optional<String[]> states, Optional<Long[]> categories,
                                                 Optional<String> rangeStart, Optional<String> rangeEnd, int from, int size) {
         PageRequest pageRequest = PageRequest.of(from / size, size);
-        LocalDateTime start = rangeStart.isPresent() ? convertToDateTime(rangeStart.get()) : LocalDateTime.MIN;
-        LocalDateTime end = rangeEnd.isPresent() ? convertToDateTime(rangeEnd.get()) : LocalDateTime.MAX;
-        return selectMethodByParameters(users, states, categories, start, end, pageRequest).stream()
-                .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+        Optional<SearchFilterEventAdm> searchFilterEventAdm = Optional.ofNullable(new SearchFilterEventAdm(Arrays.asList(users.get()),
+                Arrays.asList(states.get()), Arrays.asList(categories.get()), rangeStart.get(), rangeEnd.get()));
+        if (searchFilterEventAdm.isPresent()) {
+            List<Specification<Event>> specifications = eventSpecification.searchFilterSpecificationsAdm(searchFilterEventAdm.get());
+            return eventRepository.findAll(specifications.stream().reduce(Specification::and).get(), pageRequest).stream()
+                    .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+        }
+        return eventRepository.findAll(pageRequest).stream().map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
     }
-    //TO DO
 
     @Override
-    public List<EventFullDto> getEvents(Optional<String> text, Optional<Long[]> categories, Optional<Boolean> paid,
-                                        Optional<String> rangeStart, Optional<String> rangeEnd, Boolean onlyAvailable,
-                                        Optional<String> sort, int from, int size) {
-        PageRequest pageRequest = PageRequest.of(from / size, size);
-        LocalDateTime start = rangeStart.isPresent() ? convertToDateTime(rangeStart.get()) : LocalDateTime.now();
-        LocalDateTime end = rangeEnd.isPresent() ? convertToDateTime(rangeEnd.get()) : LocalDateTime.MAX;
-        return null;
+    public List<EventFullDto> getEvents(Optional<String> text, Optional<Long[]> categories, Optional<Boolean> paid, Optional<String> rangeStart,
+                                        Optional<String> rangeEnd, Boolean onlyAvailable,
+                                        Optional<EventSortParameter> sort, int from, int size, HttpServletRequest request) {
+        String searchText = Objects.nonNull(text.get()) ? text.get().toLowerCase() : null;
+        SearchFilterEvent filter = new SearchFilterEvent(searchText, Arrays.asList(categories.get()), paid.get(), rangeStart.get(), rangeEnd.get(), onlyAvailable);
+        List<Specification<Event>> specifications = eventSpecification.searchFilterToSpecifications(filter);
+        addHit(request);
+        if (sort.isPresent()) {
+            return getEventsByFilterAndSort(specifications, sort, from, size);
+        }
+        return getEventsByFilter(specifications, from, size);
     }
 
-    private void compareDate(LocalDateTime dateMastBefore, LocalDateTime dateMastAfter, String errorMassege) {
+    @Override
+    public EventFullDto getEventById(long id, HttpServletRequest request) {
+        addHit(request);
+        EventFullDto eventFullDto = mapper.convertEventToEventFullDto(getEventByIdOrException(id));
+        setView(eventFullDto, request);
+        return eventFullDto;
+    }
+
+    private List<EventFullDto> getEventsByFilterAndSort(List<Specification<Event>> specifications, Optional<EventSortParameter> sort, int from, int size) {
+        String sortValue = sort.get().equals(VIEWS) ? "views" : "eventDate";
+        Pageable sortedPageable = PageRequest.of(from / size, size, Sort.by(sortValue));
+        return eventRepository.findAll(specifications.stream().reduce(Specification::and).get(), sortedPageable).stream()
+                .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+    }
+
+    private List<EventFullDto> getEventsByFilter(List<Specification<Event>> specifications, int from, int size) {
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        return eventRepository.findAll(specifications.stream().reduce(Specification::and).get(), pageRequest).stream()
+                .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+    }
+
+
+    private void compareDate(LocalDateTime dateMastBefore, LocalDateTime dateMastAfter, String errorMessage) {
         if (dateMastBefore.isAfter(dateMastAfter)) {
             throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
-                    errorMassege, LocalDateTime.now());
+                    errorMessage, LocalDateTime.now());
         }
     }
 
@@ -170,9 +217,9 @@ public class EventServiceImpl implements EventService {
         );
     }
 
-    private ObjectNotSatisfyRulesException getEventNotSatisfyRulesException(String massege) {
+    private ObjectNotSatisfyRulesException getEventNotSatisfyRulesException(String message) {
         throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
-                massege,
+                message,
                 LocalDateTime.now());
     }
 
@@ -266,15 +313,18 @@ public class EventServiceImpl implements EventService {
         return eventRepository.getEventByUsesStatesCategoriesAndEventDate(Arrays.asList(users.get()), Arrays.asList(states), Arrays.asList(categories.get()), start, end, pageRequest);
     }
 
-    private Page<Event> selectMethodForGetEvents(Optional<String> text, Optional<Long[]> categories, Optional<Boolean> paid,
-                                                 LocalDateTime start, LocalDateTime end,
-                                                 Boolean onlyAvailable,
-                                                 Optional<String> sort,
-                                                 PageRequest pageRequest) {
-        if (text.isPresent() && categories.isPresent() && paid.isPresent() && sort.isEmpty()) {
-            return null;
-            //eventRepository.getEventByTextCategoriesPaid(text.get(), Arrays.asList(categories.get()), paid.get(), start, onlyAvailable, end, pageRequest);
-        }
-        return null;
+    private void addHit(HttpServletRequest request) {
+        hitClient.addHit(new EndpointHitDto("ewm-service", request.getRequestURI(), request.getRemoteAddr(),
+                convertToString(LocalDateTime.now())));
     }
+
+    private void setView(EventFullDto eventFullDto, HttpServletRequest request) {
+        String[] uri = new String[1];
+        uri[0] = request.getRequestURI();
+        List<StatsDto> statsResponse = statsClient.getStats(eventFullDto.getPublishedOn(), eventFullDto.getEventDate(), Optional.of(uri), true);
+        if (Objects.nonNull(statsResponse) && statsResponse.size() > 0) {
+            eventFullDto.setViews(statsResponse.get(0).getHits());
+        }
+    }
+
 }
