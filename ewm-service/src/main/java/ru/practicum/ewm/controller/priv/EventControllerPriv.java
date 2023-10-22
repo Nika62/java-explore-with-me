@@ -10,7 +10,6 @@ import ru.practicum.ewm.dto.request.RequestDto;
 import ru.practicum.ewm.service.EventService;
 import ru.practicum.ewm.service.RequestService;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
@@ -46,7 +45,7 @@ public class EventControllerPriv {
     }
 
     @PatchMapping("/{eventId}")
-    public EventFullDto updateEvent(@PathVariable long userId, @PathVariable long eventId, @RequestBody NewEventDto newEventDto, HttpServletRequest request) {
+    public EventFullDto updateEvent(@PathVariable long userId, @PathVariable long eventId, @RequestBody NewEventDto newEventDto) {
         return eventService.updateEventByUser(userId, eventId, newEventDto);
     }
 
