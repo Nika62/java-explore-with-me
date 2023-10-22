@@ -35,18 +35,24 @@ public class StatsServiceImpl implements StatsService {
         LocalDateTime startTime = LocalDateTime.parse(start, format);
         LocalDateTime endTime = LocalDateTime.parse(end, format);
         if (uris.isPresent()) {
-            List<String> uriList = Arrays.asList(uris.get());
-            if (unique) {
-                return statsRepository.getStatsByAllParameterAndUnique(startTime, endTime, uriList);
-            } else {
-                return statsRepository.getStatsByAllParameterNoUnique(startTime, endTime, uriList);
-            }
+            return getStateByUris(startTime, endTime, uris, unique);
         }
+        return getStateNoUris(startTime, endTime, unique);
+    }
+
+    private List<StatsDto> getStateByUris(LocalDateTime startTime, LocalDateTime endTime, Optional<String[]> uris, Boolean unique) {
+        List<String> uriList = Arrays.asList(uris.get());
+        if (unique) {
+            return statsRepository.getStatsByAllParameterAndUnique(startTime, endTime, uriList);
+        } else {
+            return statsRepository.getStatsByAllParameterNoUnique(startTime, endTime, uriList);
+        }
+    }
+
+    private List<StatsDto> getStateNoUris(LocalDateTime startTime, LocalDateTime endTime, Boolean unique) {
         if (unique) {
             return statsRepository.getStatsByDateTimeAndUnique(startTime, endTime);
         }
         return statsRepository.getStatsByDateTimeNoUnique(startTime, endTime);
     }
-
-
 }

@@ -14,11 +14,11 @@ public interface EventService {
 
     List<EventFullDto> getEventsByUserId(long userId, int from, int size);
 
-    EventFullDto getEventByIdAndInitiator(long userId, long eventId, HttpServletRequest request);
+    EventFullDto getEventByIdAndInitiator(long userId, long eventId);
 
-    EventFullDto updateEventByUser(long userId, long eventId, NewEventDto newEventDto, HttpServletRequest request);
+    EventFullDto updateEventByUser(long userId, long eventId, NewEventDto newEventDto);
 
-    EventFullDto updateEventByAdmin(long eventId, NewEventDto newEventDto, HttpServletRequest request);
+    EventFullDto updateEventByAdmin(long eventId, NewEventDto newEventDto);
 
     List<EventFullDto> getEventsForAdmin(Optional<Long[]> users, Optional<String[]> states, Optional<Long[]> categories,
                                          Optional<String> rangeStart, Optional<String> rangeEnd, int from, int size);

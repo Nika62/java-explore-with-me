@@ -23,9 +23,7 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.PENDING;
-import static ru.practicum.ewm.model.enums.RequestsStatus.REJECTED;
+import static ru.practicum.ewm.model.enums.RequestsStatus.*;
 
 @Service
 @RequiredArgsConstructor
@@ -121,7 +119,8 @@ public class RequestServiceIml implements RequestService {
     }
 
     private void setRequestStatus(Request request, Event event) {
-        if (event.getRequestModeration().equals(false)) {
+        if (event.getRequestModeration().equals(false) ||
+                event.getParticipantLimit() == 0) {
             request.setStatus(CONFIRMED.name());
             return;
         }

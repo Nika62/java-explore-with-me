@@ -1,7 +1,6 @@
 package ru.practicum.ewm.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -72,14 +71,14 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventFullDto getEventByIdAndInitiator(long userId, long eventId, HttpServletRequest request) {
+    public EventFullDto getEventByIdAndInitiator(long userId, long eventId) {
         EventFullDto eventFullDto = mapper.convertEventToEventFullDto(getEventByIdOrException(userId, eventId));
-        setView(eventFullDto, request);
+        setView(eventFullDto);
         return eventFullDto;
     }
 
     @Override
-    public EventFullDto updateEventByUser(long userId, long eventId, NewEventDto newEventDto, HttpServletRequest request) {
+    public EventFullDto updateEventByUser(long userId, long eventId, NewEventDto newEventDto) {
         Event event = getEventByIdOrException(userId, eventId);
         checkStateEvent(event);
         setEventParameters(event, newEventDto);
@@ -87,16 +86,15 @@ public class EventServiceImpl implements EventService {
             setStateEvent(newEventDto.getStateAction(), event);
         }
         EventFullDto eventFullDto = mapper.convertEventToEventFullDto(eventRepository.save(event));
-        setView(eventFullDto, request);
+        setView(eventFullDto);
         return eventFullDto;
     }
 
     @Override
-    public EventFullDto updateEventByAdmin(long eventId, NewEventDto newEventDto, HttpServletRequest request) {
+    public EventFullDto updateEventByAdmin(long eventId, NewEventDto newEventDto) {
         Event event = getEventByIdOrException(eventId);
         checkStateEvent(event);
         setEventParameters(event, newEventDto);
-
         LocalDateTime publishedDate = LocalDateTime.now();
         StateAction stateAction = newEventDto.getStateAction();
 
@@ -108,9 +106,8 @@ public class EventServiceImpl implements EventService {
             }
             setStateEvent(stateAction, event);
         }
-
         EventFullDto eventFullDto = mapper.convertEventToEventFullDto(eventRepository.save(event));
-        setView(eventFullDto, request);
+        setView(eventFullDto);
         return eventFullDto;
     }
 
@@ -118,22 +115,27 @@ public class EventServiceImpl implements EventService {
     public List<EventFullDto> getEventsForAdmin(Optional<Long[]> users, Optional<String[]> states, Optional<Long[]> categories,
                                                 Optional<String> rangeStart, Optional<String> rangeEnd, int from, int size) {
         PageRequest pageRequest = PageRequest.of(from / size, size);
-        Optional<SearchFilterEventAdm> searchFilterEventAdm = Optional.ofNullable(new SearchFilterEventAdm(Arrays.asList(users.get()),
-                Arrays.asList(states.get()), Arrays.asList(categories.get()), rangeStart.get(), rangeEnd.get()));
-        if (searchFilterEventAdm.isPresent()) {
-            List<Specification<Event>> specifications = eventSpecification.searchFilterSpecificationsAdm(searchFilterEventAdm.get());
-            return eventRepository.findAll(specifications.stream().reduce(Specification::and).get(), pageRequest).stream()
-                    .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+        if (users.isEmpty() && states.isEmpty() && categories.isEmpty() && rangeStart.isEmpty() && rangeEnd.isEmpty()) {
+            return eventRepository.findAll(pageRequest).stream().map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
         }
-        return eventRepository.findAll(pageRequest).stream().map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+        SearchFilterEventAdm searchFilterEventAdm = new SearchFilterEventAdm(Arrays.asList(users.orElse(null)), Arrays.asList(states.orElse(null)), Arrays.asList(categories.orElse(null)), rangeStart.orElse(null), rangeEnd.orElse(null));
+        List<Specification<Event>> specifications = eventSpecification.searchFilterSpecificationsAdm(searchFilterEventAdm);
+        return eventRepository.findAll(specifications.stream().reduce(Specification::and).get(), pageRequest).stream()
+                .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
     }
 
     @Override
     public List<EventFullDto> getEvents(Optional<String> text, Optional<Long[]> categories, Optional<Boolean> paid, Optional<String> rangeStart,
                                         Optional<String> rangeEnd, Boolean onlyAvailable,
                                         Optional<EventSortParameter> sort, int from, int size, HttpServletRequest request) {
-        String searchText = Objects.nonNull(text.get()) ? text.get().toLowerCase() : null;
-        SearchFilterEvent filter = new SearchFilterEvent(searchText, Arrays.asList(categories.get()), paid.get(), rangeStart.get(), rangeEnd.get(), onlyAvailable);
+        String searchText = text.isPresent() ? text.get().toLowerCase() : null;
+
+        if (rangeStart.isPresent() && rangeEnd.isPresent()) {
+            if (convertToDateTime(rangeStart.get()).isAfter(convertToDateTime(rangeEnd.get()))) {
+                throw new ValidationException("Incorrectly made request.", "The rangeStart should be before the rangeEnd", LocalDateTime.now());
+            }
+        }
+        SearchFilterEvent filter = new SearchFilterEvent(searchText, Arrays.asList(categories.orElse(null)), paid.orElse(null), rangeStart.orElse(null), rangeEnd.orElse(null), onlyAvailable);
         List<Specification<Event>> specifications = eventSpecification.searchFilterToSpecifications(filter);
         addHit(request);
         if (sort.isPresent()) {
@@ -145,8 +147,11 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto getEventById(long id, HttpServletRequest request) {
         addHit(request);
-        EventFullDto eventFullDto = mapper.convertEventToEventFullDto(getEventByIdOrException(id));
-        setView(eventFullDto, request);
+        Event event = eventRepository.getEventByIdAndState(id, PUBLISHED.name()).orElseThrow(
+                () -> new ObjectNotFoundException("Integrity constraint has been violated.",
+                        "Event with id=" + id + " was not found", LocalDateTime.now()));
+        EventFullDto eventFullDto = mapper.convertEventToEventFullDto(event);
+        setView(eventFullDto);
         return eventFullDto;
     }
 
@@ -174,7 +179,7 @@ public class EventServiceImpl implements EventService {
     private Event getEventByIdOrException(long userId, long eventId) {
         return eventRepository.getEventByIdAndInitiatorId(eventId, userId).orElseThrow(
                 () -> new ObjectNotFoundException("Integrity constraint has been violated.",
-                        "Event with id=" + eventId + "was not found", LocalDateTime.now())
+                        "Event with id=" + eventId + " was not found", LocalDateTime.now())
         );
     }
 
@@ -213,7 +218,7 @@ public class EventServiceImpl implements EventService {
     private Event getEventByIdOrException(long eventId) {
         return eventRepository.findById(eventId).orElseThrow(
                 () -> new ObjectNotFoundException("Integrity constraint has been violated.",
-                        "Event with id=" + eventId + "was not found", LocalDateTime.now())
+                        "Event with id=" + eventId + " was not found", LocalDateTime.now())
         );
     }
 
@@ -230,7 +235,7 @@ public class EventServiceImpl implements EventService {
                     && !annotation.isBlank()) {
                 event.setAnnotation(newEventDto.getAnnotation());
             } else {
-                getValidationException();
+                throw new ValidationException("Incorrectly made request.", "Annotation length should be from 20 to 2000", LocalDateTime.now());
             }
         }
     }
@@ -248,7 +253,7 @@ public class EventServiceImpl implements EventService {
                     && !descr.isBlank()) {
                 event.setDescription(newEventDto.getDescription());
             } else {
-                getValidationException();
+                throw new ValidationException("Incorrectly made request.", "Description length should be from 20 to 7000", LocalDateTime.now());
             }
         }
     }
@@ -257,7 +262,7 @@ public class EventServiceImpl implements EventService {
         if (Objects.nonNull(newEventDto.getEventDate())) {
             LocalDateTime eventDate = convertToDateTime(newEventDto.getEventDate());
             compareDate(LocalDateTime.now().plusHours(2), eventDate,
-                    "Field: eventDate. Error: должно содержать дату, которая еще не наступила. Value: " + eventDate);
+                    "Field: eventDate. Error: must save dates that have not yet arrived. Value: " + eventDate);
             event.setEventDate(eventDate);
         }
     }
@@ -290,27 +295,13 @@ public class EventServiceImpl implements EventService {
     private void setTitle(Event event, NewEventDto newEventDto) {
         if (Objects.nonNull(newEventDto.getTitle())) {
             String title = newEventDto.getTitle();
-            if (title.length() <= 130 && title.length() >= 3
+            if (title.length() <= 120 && title.length() >= 3
                     && !title.isBlank()) {
                 event.setTitle(newEventDto.getTitle());
             } else {
-                getValidationException();
+                throw new ValidationException("Incorrectly made request.", "Title length should be from 3 to 120", LocalDateTime.now());
             }
         }
-    }
-
-    private ValidationException getValidationException() {
-        throw new ValidationException("Incorrectly made request.", "Event must not be published", LocalDateTime.now());
-    }
-
-    private Page<Event> selectMethodByParameters(Optional<Long[]> users, String[] states, Optional<Long[]> categories,
-                                                 LocalDateTime start, LocalDateTime end, PageRequest pageRequest) {
-        if (users.isPresent() && !categories.isPresent()) {
-            return eventRepository.getEventByUsesStatesAndEventDate(Arrays.asList(users.get()), Arrays.asList(states), start, end, pageRequest);
-        } else if (!users.isPresent() && categories.isPresent()) {
-            return eventRepository.getEventByStatesCategoriesAndEventDate(Arrays.asList(states), Arrays.asList(categories.get()), start, end, pageRequest);
-        }
-        return eventRepository.getEventByUsesStatesCategoriesAndEventDate(Arrays.asList(users.get()), Arrays.asList(states), Arrays.asList(categories.get()), start, end, pageRequest);
     }
 
     private void addHit(HttpServletRequest request) {
@@ -318,10 +309,10 @@ public class EventServiceImpl implements EventService {
                 convertToString(LocalDateTime.now())));
     }
 
-    private void setView(EventFullDto eventFullDto, HttpServletRequest request) {
+    private void setView(EventFullDto eventFullDto) {
         String[] uri = new String[1];
-        uri[0] = request.getRequestURI();
-        List<StatsDto> statsResponse = statsClient.getStats(eventFullDto.getPublishedOn(), eventFullDto.getEventDate(), Optional.of(uri), true);
+        uri[0] = "/events/" + eventFullDto.getId();
+        List<StatsDto> statsResponse = statsClient.getStats(eventFullDto.getCreatedOn(), eventFullDto.getEventDate(), uri, true);
         if (Objects.nonNull(statsResponse) && statsResponse.size() > 0) {
             eventFullDto.setViews(statsResponse.get(0).getHits());
         }

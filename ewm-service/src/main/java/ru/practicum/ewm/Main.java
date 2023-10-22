@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Import;
 import ru.practicum.stats.client.HitClient;
 import ru.practicum.stats.client.StatsClient;
 
+
 @SpringBootApplication
 @Import({HitClient.class, StatsClient.class})
 public class Main {

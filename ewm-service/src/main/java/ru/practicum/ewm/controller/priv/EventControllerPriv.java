@@ -41,13 +41,13 @@ public class EventControllerPriv {
     }
 
     @GetMapping("/{eventId}")
-    public EventFullDto getEventById(@PathVariable long userId, @PathVariable long eventId, HttpServletRequest request) {
-        return eventService.getEventByIdAndInitiator(userId, eventId, request);
+    public EventFullDto getEventById(@PathVariable long userId, @PathVariable long eventId) {
+        return eventService.getEventByIdAndInitiator(userId, eventId);
     }
 
     @PatchMapping("/{eventId}")
     public EventFullDto updateEvent(@PathVariable long userId, @PathVariable long eventId, @RequestBody NewEventDto newEventDto, HttpServletRequest request) {
-        return eventService.updateEventByUser(userId, eventId, newEventDto, request);
+        return eventService.updateEventByUser(userId, eventId, newEventDto);
     }
 
     @GetMapping("/{eventId}/requests")

@@ -14,7 +14,6 @@ import ru.practicum.stats.dto.StatsDto;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.springframework.http.HttpMethod.GET;
 
@@ -26,29 +25,25 @@ public class StatsClient {
 
     public final RestTemplate restTemplate;
 
-    public StatsClient(@Value("http://localhost:9090") String serverUrl, RestTemplateBuilder builder) {
+    public StatsClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
         this.restTemplate = builder
                 .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
                 .requestFactory(HttpComponentsClientHttpRequestFactory::new)
                 .build();
     }
 
-    public List<StatsDto> getStats(String start, String end, Optional<String[]> uris, Boolean unique) {
+    public List<StatsDto> getStats(String start, String end, String[] uris, Boolean unique) {
         Map<String, Object> parameters = Map.of(
                 "start", start,
                 "end", end,
                 "uris", uris,
                 "unique", unique
         );
-        var u = uris.get();
         try {
-            log.info("GET uri" + u);
             ResponseEntity<StatsDto[]> response = restTemplate.exchange("?start={start}&end={end}&uris={uris}&unique={unique}", GET, null, StatsDto[].class, parameters);
-            log.info("RESPONSE   " + response.toString());
             return Arrays.asList(response.getBody());
         } catch (HttpStatusCodeException e) {
-            new RuntimeException(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
-        return null;
     }
 }
