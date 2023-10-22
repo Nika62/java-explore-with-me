@@ -39,6 +39,7 @@ public class StatsClient {
                 "uris", uris,
                 "unique", unique
         );
+
         try {
             ResponseEntity<StatsDto[]> response = restTemplate.exchange("?start={start}&end={end}&uris={uris}&unique={unique}", GET, null, StatsDto[].class, parameters);
             return Arrays.asList(response.getBody());
