@@ -9,6 +9,7 @@ import ru.practicum.stats.service.StatsRepository;
 import ru.practicum.stats.service.StatsService;
 import ru.practicum.stats.service.model.EndpointHit;
 
+import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ public class StatsServiceImpl implements StatsService {
     public List<StatsDto> getState(String start, String end, Optional<String[]> uris, Boolean unique) {
         LocalDateTime startTime = LocalDateTime.parse(start, format);
         LocalDateTime endTime = LocalDateTime.parse(end, format);
+        compareDate(startTime, endTime);
         if (uris.isPresent()) {
             return getStateByUris(startTime, endTime, uris, unique);
         }
@@ -54,5 +56,11 @@ public class StatsServiceImpl implements StatsService {
             return statsRepository.getStatsByDateTimeAndUnique(startTime, endTime);
         }
         return statsRepository.getStatsByDateTimeNoUnique(startTime, endTime);
+    }
+
+    private void compareDate(LocalDateTime dateMastBefore, LocalDateTime dateMastAfter) {
+        if (dateMastBefore.isAfter(dateMastAfter)) {
+            throw new ValidationException("The start should be before the end");
+        }
     }
 }
