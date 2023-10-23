@@ -61,24 +61,24 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDto getCategoryById(long catId) {
         Category category = categoryRepository.findById(catId).orElseThrow(
-                this::getNotFoundException);
+                () -> getNotFoundException(catId));
         return mapper.convertCategoryToCategoryDto(category);
     }
 
     private void checkCategoryExists(long catId) {
         if (!categoryRepository.existsById(catId)) {
-            getNotFoundException();
+            getNotFoundException(catId);
         }
     }
 
     private void checkCategoryEmpty(long catId) {
         if (eventRepository.existsEventByCategoryId(catId)) {
-            getNotFoundException();
+            throw new DeletionBlockedException("For the requested operation the conditions are not met.", "The category is not empty", LocalDateTime.now());
         }
     }
 
-    private ObjectNotFoundException getNotFoundException() {
-        throw new DeletionBlockedException("For the requested operation the conditions are not met.", "The category is not empty", LocalDateTime.now());
+    private ObjectNotFoundException getNotFoundException(long id) {
+        throw new ObjectNotFoundException("The required object was not found.", "Category with id=" + id + " was not found", LocalDateTime.now());
     }
 
 

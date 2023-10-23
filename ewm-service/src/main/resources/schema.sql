@@ -40,6 +40,7 @@ create table if not exists requests(
     event_id BIGINT NOT null,
     user_id BIGINT NOT null,
     status varchar not null,
+    unique(event_id, user_id),
     CONSTRAINT fk_requests_event_id FOREIGN KEY(event_id)
     REFERENCES events(id) ON DELETE CASCADE,
     CONSTRAINT fk_request_user_id FOREIGN KEY(user_id)

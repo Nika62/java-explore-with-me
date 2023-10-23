@@ -15,7 +15,11 @@ import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.service.CompilationService;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -85,8 +89,10 @@ public class CompilationServiceIml implements CompilationService {
     }
 
     private void checkCompilationTitle(NewCompilationDto newCompilationDto) {
-        if (Objects.nonNull(newCompilationDto.getTitle()) && newCompilationDto.getTitle().length() < 50 && newCompilationDto.getTitle().length() > 1) {
-            throw new ValidationException("Incorrectly made request.", "Annotation length should be from 1 to 50", LocalDateTime.now());
+        if (Objects.nonNull(newCompilationDto.getTitle())) {
+            if (newCompilationDto.getTitle().length() > 50 || newCompilationDto.getTitle().length() < 1) {
+                throw new ValidationException("Incorrectly made request.", "Annotation length should be from 1 to 50", LocalDateTime.now());
+            }
         }
     }
 }

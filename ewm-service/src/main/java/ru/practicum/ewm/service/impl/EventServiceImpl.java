@@ -28,7 +28,6 @@ import ru.practicum.stats.dto.StatsDto;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,8 +36,13 @@ import java.util.stream.Collectors;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 import static ru.practicum.ewm.model.enums.EventSortParameter.VIEWS;
-import static ru.practicum.ewm.model.enums.PublicationStatus.*;
-import static ru.practicum.ewm.model.enums.StateAction.*;
+import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
+import static ru.practicum.ewm.model.enums.PublicationStatus.PENDING;
+import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
+import static ru.practicum.ewm.model.enums.StateAction.CANCEL_REVIEW;
+import static ru.practicum.ewm.model.enums.StateAction.PUBLISH_EVENT;
+import static ru.practicum.ewm.model.enums.StateAction.REJECT_EVENT;
+import static ru.practicum.ewm.model.enums.StateAction.SEND_TO_REVIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +59,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto createEvent(long userId, NewEventDto newEventDto) {
         LocalDateTime createdDate = LocalDateTime.now();
         compareDate(createdDate.plusHours(2), convertToDateTime(newEventDto.getEventDate()),
-                "Field: eventDate. Error: должно содержать дату, которая еще не наступила. Value: " + newEventDto.getEventDate());
+                "Field: eventDate. Error: must contain a date that has not yet arrived. Value: " + newEventDto.getEventDate());
         Event event = mapper.convertNewEventDtoToEvent(newEventDto);
         event.setCreatedOn(createdDate);
         event.setState(PENDING.name());
@@ -101,7 +105,7 @@ public class EventServiceImpl implements EventService {
         if (Objects.nonNull(stateAction)) {
             if (stateAction.equals(PUBLISH_EVENT)) {
                 compareDate(publishedDate.plusHours(1), event.getEventDate(),
-                        "Cannot publish the event because it's not in the right state: PUBLISHED");
+                        "The publication date must be an hour or more earlier than the event date");
                 event.setPublishedOn(publishedDate);
             }
             setStateEvent(stateAction, event);
@@ -118,7 +122,7 @@ public class EventServiceImpl implements EventService {
         if (users.isEmpty() && states.isEmpty() && categories.isEmpty() && rangeStart.isEmpty() && rangeEnd.isEmpty()) {
             return eventRepository.findAll(pageRequest).stream().map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
         }
-        SearchFilterEventAdm searchFilterEventAdm = new SearchFilterEventAdm(Arrays.asList(users.orElse(null)), Arrays.asList(states.orElse(null)), Arrays.asList(categories.orElse(null)), rangeStart.orElse(null), rangeEnd.orElse(null));
+        SearchFilterEventAdm searchFilterEventAdm = new SearchFilterEventAdm(users, states, categories, rangeStart, rangeEnd);
         List<Specification<Event>> specifications = eventSpecification.searchFilterSpecificationsAdm(searchFilterEventAdm);
         return eventRepository.findAll(specifications.stream().reduce(Specification::and).get(), pageRequest).stream()
                 .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
@@ -128,14 +132,12 @@ public class EventServiceImpl implements EventService {
     public List<EventFullDto> getEvents(Optional<String> text, Optional<Long[]> categories, Optional<Boolean> paid, Optional<String> rangeStart,
                                         Optional<String> rangeEnd, Boolean onlyAvailable,
                                         Optional<EventSortParameter> sort, int from, int size, HttpServletRequest request) {
-        String searchText = text.isPresent() ? text.get().toLowerCase() : null;
+        text = text.isPresent() ? Optional.of(text.get().toLowerCase()) : Optional.empty();
 
         if (rangeStart.isPresent() && rangeEnd.isPresent()) {
-            if (convertToDateTime(rangeStart.get()).isAfter(convertToDateTime(rangeEnd.get()))) {
-                throw new ValidationException("Incorrectly made request.", "The rangeStart should be before the rangeEnd", LocalDateTime.now());
+            compareDate(convertToDateTime(rangeStart.get()), convertToDateTime(rangeEnd.get()), "The rangeStart should be before the rangeEnd");
             }
-        }
-        SearchFilterEvent filter = new SearchFilterEvent(searchText, Arrays.asList(categories.orElse(null)), paid.orElse(null), rangeStart.orElse(null), rangeEnd.orElse(null), onlyAvailable);
+        SearchFilterEvent filter = new SearchFilterEvent(text, categories, paid, rangeStart, rangeEnd, onlyAvailable);
         List<Specification<Event>> specifications = eventSpecification.searchFilterToSpecifications(filter);
         addHit(request);
         if (sort.isPresent()) {
@@ -171,7 +173,7 @@ public class EventServiceImpl implements EventService {
 
     private void compareDate(LocalDateTime dateMastBefore, LocalDateTime dateMastAfter, String errorMessage) {
         if (dateMastBefore.isAfter(dateMastAfter)) {
-            throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
+            throw new ValidationException("Incorrectly made request.",
                     errorMessage, LocalDateTime.now());
         }
     }
@@ -185,7 +187,8 @@ public class EventServiceImpl implements EventService {
 
     private void checkStateEvent(Event event) {
         if (event.getState().equals(PUBLISHED.name())) {
-            getEventNotSatisfyRulesException("Only pending or canceled events can be changed");
+            throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
+                    "Unable to update a published event.", LocalDateTime.now());
         }
     }
 
@@ -193,12 +196,12 @@ public class EventServiceImpl implements EventService {
         if (stateAction.equals(SEND_TO_REVIEW)) {
             event.setState(PENDING.name());
         } else if (stateAction.equals(PUBLISH_EVENT)) {
-            if (event.getState().equals(CANCELED.name()) ||
-                    event.getState().equals(PUBLISHED.name())) {
-                getEventNotSatisfyRulesException("Only pending or canceled events can be changed");
+            if (event.getState().equals(CANCELED.name())) {
+                throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
+                        "Unable to publish a canceled event.", LocalDateTime.now());
             }
             event.setState(PUBLISHED.name());
-        } else if (stateAction.equals(REJECT_EVENT)) {
+        } else if (stateAction.equals(REJECT_EVENT) || stateAction.equals(CANCEL_REVIEW)) {
             event.setState(CANCELED.name());
         }
     }
@@ -220,12 +223,6 @@ public class EventServiceImpl implements EventService {
                 () -> new ObjectNotFoundException("Integrity constraint has been violated.",
                         "Event with id=" + eventId + " was not found", LocalDateTime.now())
         );
-    }
-
-    private ObjectNotSatisfyRulesException getEventNotSatisfyRulesException(String message) {
-        throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
-                message,
-                LocalDateTime.now());
     }
 
     private void setAnnotation(Event event, NewEventDto newEventDto) {

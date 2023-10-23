@@ -10,6 +10,7 @@ import ru.practicum.ewm.mapper.RequestMapper;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.Request;
 import ru.practicum.ewm.model.User;
+import ru.practicum.ewm.model.exception.ObjectAlreadyExistsException;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
 import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
 import ru.practicum.ewm.repository.EventRepository;
@@ -23,7 +24,9 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.*;
+import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
+import static ru.practicum.ewm.model.enums.RequestsStatus.PENDING;
+import static ru.practicum.ewm.model.enums.RequestsStatus.REJECTED;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +46,11 @@ public class RequestServiceIml implements RequestService {
         try {
             request = requestRepository.save(getRequestByCreate(event, created, userId));
         } catch (DataIntegrityViolationException e) {
-            throw new ObjectNotSatisfyRulesException("Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
+            throw new ObjectAlreadyExistsException("Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
+        }
+        if(event.getRequestModeration().equals(false) || event.getParticipantLimit() == 0){
+            event.setConfirmedRequests(event.getConfirmedRequests()+1);
+            eventRepository.save(event);
         }
         return requestMapper.convertRequestToRequestDto(request);
     }
@@ -114,7 +121,7 @@ public class RequestServiceIml implements RequestService {
     }
 
     private ObjectNotSatisfyRulesException getNotSatisfyRulesException(String errorMessage) {
-        throw new ObjectNotSatisfyRulesException("Integrity constraint has been violated.",
+        throw new ObjectNotSatisfyRulesException("Request to participate in the event meets the requirements",
                 errorMessage, LocalDateTime.now());
     }
 

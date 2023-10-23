@@ -4,15 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
+import java.util.Optional;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class SearchFilterEventAdm {
-    private List<Long> users;
-    private List<String> states;
-    private List<Long> categories;
-    private String rangeStart;
-    private String rangeEnd;
+    private Optional<Long[]> users;
+    private Optional<String[]> states;
+    private Optional<Long[]> categories;
+    private Optional<String> rangeStart;
+    private Optional<String> rangeEnd;
 }

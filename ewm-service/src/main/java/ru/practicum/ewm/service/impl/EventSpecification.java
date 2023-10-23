@@ -8,8 +8,10 @@ import ru.practicum.ewm.model.Event;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
@@ -20,28 +22,28 @@ public class EventSpecification {
 
     protected List<Specification<Event>> searchFilterToSpecifications(SearchFilterEvent filter) {
         List<Specification<Event>> specifications = new ArrayList<>();
-        specifications.add(filter.getText() == null ? null : likeText(filter.getText()));
-        specifications.add(filter.getCategories() == null ? null : categoryIn(filter.getCategories()));
-        specifications.add(filter.getPaid() == null ? null : paidEqualsTo(filter.getPaid()));
+        specifications.add(filter.getText().isEmpty()  ? null : likeText(filter.getText()));
+        specifications.add(filter.getCategories().isEmpty()  ? null : categoryIn(filter.getCategories()));
+        specifications.add(filter.getPaid().isEmpty()  ? null : paidEqualsTo(filter.getPaid()));
         specifications.add(filter.getOnlyAvailable().equals(false) ? null : isOnlyAvailable(filter.getOnlyAvailable()));
-        specifications.add(filter.getRangeStart() == null ? greaterThanTimeNow() : greaterThanOrEqualToRangeStart(filter.getRangeStart()));
-        specifications.add(filter.getRangeEnd() == null ? null : lessThanOrEqualToRangeEnd(filter.getRangeEnd()));
+        specifications.add(filter.getRangeStart().isEmpty()  ? greaterThanTimeNow() : greaterThanOrEqualToRangeStart(filter.getRangeStart()));
+        specifications.add(filter.getRangeEnd().isEmpty()  ? null : lessThanOrEqualToRangeEnd(filter.getRangeEnd()));
         specifications.add(equalsPublished());
         return specifications.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     protected List<Specification<Event>> searchFilterSpecificationsAdm(SearchFilterEventAdm filter) {
         List<Specification<Event>> specifications = new ArrayList<>();
-        specifications.add(filter.getUsers() == null ? null : inUsers(filter.getUsers()));
-        specifications.add(filter.getStates() == null ? null : inStates(filter.getStates()));
-        specifications.add(filter.getCategories() == null ? null : categoryIn(filter.getCategories()));
-        specifications.add(filter.getRangeStart() == null ? greaterThanTimeNow() : greaterThanOrEqualToRangeStart(filter.getRangeStart()));
-        specifications.add(filter.getRangeEnd() == null ? null : lessThanOrEqualToRangeEnd(filter.getRangeEnd()));
+        specifications.add(filter.getUsers().isEmpty() ? null : inUsers(filter.getUsers()));
+        specifications.add(filter.getStates().isEmpty() ? null : inStates(filter.getStates()));
+        specifications.add(filter.getCategories().isEmpty() ? null : categoryIn(filter.getCategories()));
+        specifications.add(filter.getRangeStart().isEmpty() ? greaterThanTimeNow() : greaterThanOrEqualToRangeStart(filter.getRangeStart()));
+        specifications.add(filter.getRangeEnd().isEmpty() ? null : lessThanOrEqualToRangeEnd(filter.getRangeEnd()));
         return specifications.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    private Specification<Event> paidEqualsTo(Boolean paid) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("paid"), paid);
+    private Specification<Event> paidEqualsTo(Optional<Boolean> paid) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("paid"), paid.get());
     }
 
     private Specification<Event> isOnlyAvailable(Boolean onlyAvailable) {
@@ -49,21 +51,21 @@ public class EventSpecification {
                 criteriaBuilder.greaterThan(root.get("participantLimit"), root.get("confirmedRequests")));
     }
 
-    private Specification<Event> categoryIn(List<Long> categoriesIds) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("category").get("id")).value(categoriesIds);
+    private Specification<Event> categoryIn(Optional<Long[]> categoriesIds) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("category").get("id")).value(Arrays.asList(categoriesIds.get()));
     }
 
-    private Specification<Event> likeText(String text) {
+    private Specification<Event> likeText(Optional<String> text) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.like(
-                criteriaBuilder.lower(root.get("annotation")), text);
+                criteriaBuilder.lower(root.get("annotation")), text.get());
     }
 
-    private Specification<Event> greaterThanOrEqualToRangeStart(String rangeStart) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.greaterThanOrEqualTo(root.get("eventDate"), convertToDateTime(rangeStart));
+    private Specification<Event> greaterThanOrEqualToRangeStart(Optional<String> rangeStart) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.greaterThanOrEqualTo(root.get("eventDate"), convertToDateTime(rangeStart.get()));
     }
 
-    private Specification<Event> lessThanOrEqualToRangeEnd(String rangeEnd) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.lessThanOrEqualTo(root.get("eventDate"), convertToDateTime(rangeEnd));
+    private Specification<Event> lessThanOrEqualToRangeEnd(Optional<String> rangeEnd) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.lessThanOrEqualTo(root.get("eventDate"), convertToDateTime(rangeEnd.get()));
     }
 
     private Specification<Event> greaterThanTimeNow() {
@@ -74,11 +76,11 @@ public class EventSpecification {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("state"), PUBLISHED.name());
     }
 
-    private Specification<Event> inUsers(List<Long> users) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("initiator").get("id")).value(users);
+    private Specification<Event> inUsers(Optional<Long[]> users) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("initiator").get("id")).value(Arrays.asList(users.get()));
     }
 
-    private Specification<Event> inStates(List<String> states) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("state")).value(states);
+    private Specification<Event> inStates(Optional<String[]> states) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("state")).value(Arrays.asList(states.get()));
     }
 }
