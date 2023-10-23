@@ -83,7 +83,6 @@ public class ErrorHandler {
         }
 
     }
-
     public List<String> getErrors(Exception e) {
         List<String> errors = new ArrayList<>();
         StackTraceElement[] stackTrace = e.getStackTrace();
