@@ -24,9 +24,7 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.PENDING;
-import static ru.practicum.ewm.model.enums.RequestsStatus.REJECTED;
+import static ru.practicum.ewm.model.enums.RequestsStatus.*;
 
 @Service
 @RequiredArgsConstructor
@@ -48,8 +46,8 @@ public class RequestServiceIml implements RequestService {
         } catch (DataIntegrityViolationException e) {
             throw new ObjectAlreadyExistsException("Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
         }
-        if(event.getRequestModeration().equals(false) || event.getParticipantLimit() == 0){
-            event.setConfirmedRequests(event.getConfirmedRequests()+1);
+        if (event.getRequestModeration().equals(false) || event.getParticipantLimit() == 0) {
+            event.setConfirmedRequests(event.getConfirmedRequests() + 1);
             eventRepository.save(event);
         }
         return requestMapper.convertRequestToRequestDto(request);
