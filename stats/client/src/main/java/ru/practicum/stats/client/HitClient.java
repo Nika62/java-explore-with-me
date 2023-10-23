@@ -16,11 +16,10 @@ public class HitClient {
 
     private static final String API_PREFIX = "/hit";
     private final RestTemplate restTemplate;
-//    ${stats.service.url}
-    public HitClient(@Value("http://localhost:9090") String serverUrl, RestTemplateBuilder builder) {
+    public HitClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
         this.restTemplate = builder
-                        .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
-                        .requestFactory(HttpComponentsClientHttpRequestFactory::new)
+                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
+                .requestFactory(HttpComponentsClientHttpRequestFactory::new)
                 .build();
     }
 
