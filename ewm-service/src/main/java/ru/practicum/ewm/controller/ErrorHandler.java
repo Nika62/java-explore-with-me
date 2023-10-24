@@ -4,20 +4,13 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.practicum.ewm.model.exception.CustomParentException;
-import ru.practicum.ewm.model.exception.DeletionBlockedException;
-import ru.practicum.ewm.model.exception.ObjectAlreadyExistsException;
-import ru.practicum.ewm.model.exception.ObjectNotFoundException;
-import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
-import ru.practicum.ewm.model.exception.ValidationException;
+import ru.practicum.ewm.model.exception.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.*;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 
 @RestControllerAdvice
@@ -87,7 +80,8 @@ public class ErrorHandler {
     public List<String> getErrors(Exception e) {
         List<String> errors = new ArrayList<>();
         StackTraceElement[] stackTrace = e.getStackTrace();
-        for (int i = 0; i <= 5; i++) {
+        int size = stackTrace.length <= 5 ? 5 : stackTrace.length;
+        for (int i = 0; i <= size; i++) {
             StackTraceElement stackTraceElement = stackTrace[i];
             StringBuilder error = new StringBuilder();
             error.append("File: " + stackTraceElement.getFileName() + ", ");
