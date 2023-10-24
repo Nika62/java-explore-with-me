@@ -3,6 +3,7 @@ package ru.practicum.ewm.mapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.category.CategoryDto;
+import ru.practicum.ewm.dto.event.EventForCommentDto;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.EventShortDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
@@ -83,5 +84,19 @@ public class EventMapper {
         eventShortDto.setConfirmedRequests(event.getConfirmedRequests());
 
         return eventShortDto;
+    }
+
+    public EventForCommentDto convertEventToEventForCommentDto(Event event) {
+        if (event == null) {
+            return null;
+        }
+        EventForCommentDto eventForCommentDto = new EventForCommentDto();
+        eventForCommentDto.setId(event.getId());
+        eventForCommentDto.setAnnotation(event.getAnnotation());
+        eventForCommentDto.setCategory(new CategoryDto(event.getCategory().getId(), event.getCategory().getName()));
+        eventForCommentDto.setEventDate(convertToString(event.getEventDate()));
+        eventForCommentDto.setTitle(event.getTitle());
+
+        return eventForCommentDto;
     }
 }

@@ -23,7 +23,7 @@ public class Comment {
     private User user;
     @Column
     private String text;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "event_id")
     private Event event;
     @JoinColumn(name = "createdOn")
