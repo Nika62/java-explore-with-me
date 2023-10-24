@@ -87,8 +87,7 @@ public class ErrorHandler {
     public List<String> getErrors(Exception e) {
         List<String> errors = new ArrayList<>();
         StackTraceElement[] stackTrace = e.getStackTrace();
-        int size = stackTrace.length <= 5 ? 5 : stackTrace.length;
-        for (int i = 0; i <= size; i++) {
+        for (int i = 0; i <= 5; i++) {
             StackTraceElement stackTraceElement = stackTrace[i];
             StringBuilder error = new StringBuilder();
             error.append("File: " + stackTraceElement.getFileName() + ", ");
