@@ -10,6 +10,7 @@ import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
 import ru.practicum.ewm.dto.event.SearchFilterEvent;
 import ru.practicum.ewm.dto.event.SearchFilterEventAdm;
+import ru.practicum.ewm.mapper.CommentMapper;
 import ru.practicum.ewm.mapper.EventMapper;
 import ru.practicum.ewm.model.Category;
 import ru.practicum.ewm.model.Event;
@@ -36,13 +37,8 @@ import java.util.stream.Collectors;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 import static ru.practicum.ewm.model.enums.EventSortParameter.VIEWS;
-import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
-import static ru.practicum.ewm.model.enums.PublicationStatus.PENDING;
-import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.StateAction.CANCEL_REVIEW;
-import static ru.practicum.ewm.model.enums.StateAction.PUBLISH_EVENT;
-import static ru.practicum.ewm.model.enums.StateAction.REJECT_EVENT;
-import static ru.practicum.ewm.model.enums.StateAction.SEND_TO_REVIEW;
+import static ru.practicum.ewm.model.enums.PublicationStatus.*;
+import static ru.practicum.ewm.model.enums.StateAction.*;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +46,7 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper mapper;
+    private final CommentMapper commentMapper;
     private final EventSpecification eventSpecification;
     private final HitClient hitClient;
     private final StatsClient statsClient;
@@ -150,9 +147,10 @@ public class EventServiceImpl implements EventService {
     public EventFullDto getEventById(long id, HttpServletRequest request) {
         addHit(request);
         Event event = eventRepository.getEventByIdAndState(id, PUBLISHED.name()).orElseThrow(
-                () -> new ObjectNotFoundException("Integrity constraint has been violated.",
+                () -> new ObjectNotFoundException("The required object was not found.",
                         "Event with id=" + id + " was not found", LocalDateTime.now()));
         EventFullDto eventFullDto = mapper.convertEventToEventFullDto(event);
+        eventFullDto.setComments(event.getComments().stream().map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList()));
         setView(eventFullDto);
         return eventFullDto;
     }
@@ -180,7 +178,7 @@ public class EventServiceImpl implements EventService {
 
     private Event getEventByIdOrException(long userId, long eventId) {
         return eventRepository.getEventByIdAndInitiatorId(eventId, userId).orElseThrow(
-                () -> new ObjectNotFoundException("Integrity constraint has been violated.",
+                () -> new ObjectNotFoundException("The required object was not found.",
                         "Event with id=" + eventId + " was not found", LocalDateTime.now())
         );
     }
@@ -220,7 +218,7 @@ public class EventServiceImpl implements EventService {
 
     private Event getEventByIdOrException(long eventId) {
         return eventRepository.findById(eventId).orElseThrow(
-                () -> new ObjectNotFoundException("Integrity constraint has been violated.",
+                () -> new ObjectNotFoundException("The required object was not found.",
                         "Event with id=" + eventId + " was not found", LocalDateTime.now())
         );
     }

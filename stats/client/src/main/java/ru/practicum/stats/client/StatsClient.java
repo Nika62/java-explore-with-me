@@ -25,7 +25,7 @@ public class StatsClient {
 
     public final RestTemplate restTemplate;
 
-    public StatsClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
+    public StatsClient(@Value("http://localhost:9090") String serverUrl, RestTemplateBuilder builder) {
         this.restTemplate = builder
                 .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
                 .requestFactory(HttpComponentsClientHttpRequestFactory::new)
