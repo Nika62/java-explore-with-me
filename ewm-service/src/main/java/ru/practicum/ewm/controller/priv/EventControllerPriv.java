@@ -5,6 +5,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.comment.CommentDto;
 import ru.practicum.ewm.dto.comment.CommentUserDto;
+import ru.practicum.ewm.dto.comment.NewCommentDto;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
 import ru.practicum.ewm.dto.request.EventRequestStatusUpdateRequestDto;
@@ -22,6 +23,7 @@ import javax.validation.constraints.Size;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @RequestMapping("/users/{userId}/events")
 @RequiredArgsConstructor
@@ -70,9 +72,8 @@ public class EventControllerPriv {
 
     @PostMapping("/{eventId}/comments")
     @ResponseStatus(CREATED)
-    public CommentDto addComment(@PathVariable long userId, @PathVariable long eventId,
-                                 @RequestBody @NotBlank @Size(min = 10, max = 1000) String text) {
-        return commentService.addComment(userId, eventId, text);
+    public CommentDto addComment(@PathVariable long userId, @PathVariable long eventId, @RequestBody @Valid NewCommentDto commentDto) {
+        return commentService.addComment(userId, eventId, commentDto);
     }
 
     @GetMapping("/comments")
@@ -87,8 +88,9 @@ public class EventControllerPriv {
     }
 
     @DeleteMapping("/{eventId}/comments/{commentId}")
+    @ResponseStatus(NO_CONTENT)
     public void deleteCommentById(@PathVariable long userId, @PathVariable long eventId, @PathVariable long commentId) {
-        commentService.deleteCommentById(userId, eventId, commentId);
+        commentService.deleteCommentByUser(userId, eventId, commentId);
     }
 
     @PatchMapping("/{eventId}/comments/{commentId}")

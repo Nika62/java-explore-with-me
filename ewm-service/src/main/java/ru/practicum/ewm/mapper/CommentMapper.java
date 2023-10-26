@@ -3,6 +3,7 @@ package ru.practicum.ewm.mapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.comment.CommentDto;
+import ru.practicum.ewm.dto.comment.CommentFullDto;
 import ru.practicum.ewm.dto.comment.CommentUserDto;
 import ru.practicum.ewm.model.Comment;
 
@@ -12,7 +13,6 @@ import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 @RequiredArgsConstructor
 public class CommentMapper {
 
-    private final EventMapper eventMapper;
 
     public CommentDto convertCommentToCommentDto(Comment comment) {
         if (comment == null) {
@@ -32,9 +32,20 @@ public class CommentMapper {
         }
         CommentUserDto commentUserDto = new CommentUserDto();
         commentUserDto.setId(comment.getId());
-        commentUserDto.setEvent(eventMapper.convertEventToEventForCommentDto(comment.getEvent()));
         commentUserDto.setText(comment.getText());
         commentUserDto.setCreatedOn(convertToString(comment.getCreatedOn()));
         return commentUserDto;
+    }
+
+    public CommentFullDto convertCommentToCommentFullDto(Comment comment) {
+        if (comment == null) {
+            return null;
+        }
+        CommentFullDto commentFullDto = new CommentFullDto();
+        commentFullDto.setId(comment.getId());
+        commentFullDto.setUserName(comment.getUser().getName());
+        commentFullDto.setText(comment.getText());
+        commentFullDto.setCreatedOn(convertToString(comment.getCreatedOn()));
+        return commentFullDto;
     }
 }

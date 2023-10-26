@@ -9,7 +9,11 @@ import java.util.List;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    Page<Comment> getCommentsByUserId(long id, PageRequest pageRequest);
+    Page<Comment> getCommentsByUserIdOrderById(long id, PageRequest pageRequest);
 
-    List<Comment> getCommentsByUserIdAndEventId(long userId, long eventId);
+    List<Comment> getCommentsByUserIdAndEventIdOrderById(long userId, long eventId);
+
+    Page<Comment> getCommentsByEventIdOrderById(long eventId, PageRequest pageRequest);
+
+    Page<Comment> findAllByOrderByIdAsc(PageRequest pageRequest);
 }

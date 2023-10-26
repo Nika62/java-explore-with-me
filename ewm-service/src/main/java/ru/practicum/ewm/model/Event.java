@@ -24,12 +24,10 @@ public class Event {
     private Category category;
     @JoinColumn(name = "confirmed_requests")
     private long confirmedRequests;
-    //дата и время создания события
     @JoinColumn(name = "created_on")
     private LocalDateTime createdOn;
     @Column
     private String description;
-    //время на которое намечено событие
     @JoinColumn(name = "event_date")
     private LocalDateTime eventDate;
     @ManyToOne
@@ -41,10 +39,8 @@ public class Event {
     private float locationLon;
     @Column
     private Boolean paid;
-    // ограничение на кол-во участников
     @JoinColumn(name = "participant_limit")
     private int participantLimit;
-    //дата публикации события
     @JoinColumn(name = "published_on")
     private LocalDateTime publishedOn;
     @JoinColumn(name = "request_moderation")

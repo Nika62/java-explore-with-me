@@ -24,6 +24,6 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     @Query("UPDATE Request r SET r.status =?2 WHERE r.id IN ?1 ")
     void updateAllRequestsStatus(List<Long> requestsIds, String status);
 
-    boolean existsByEventIdAndUserIdAndStatus(long eventId, long userId, String status);
+    boolean existsByEventIdAndRequesterIdAndStatus(long eventId, long userId, String status);
 
 }

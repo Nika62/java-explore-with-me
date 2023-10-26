@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.compilation.CompilationDto;
 import ru.practicum.ewm.dto.compilation.NewCompilationDto;
-import ru.practicum.ewm.dto.event.EventShortDto;
 import ru.practicum.ewm.model.Compilation;
 
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public class CompilationMapper {
             compilationDto.setEvents(
                     compilation.getEvents().stream().map(eventMapper::convertEventToEventShortDto).collect(Collectors.toList()));
         } else {
-            compilationDto.setEvents(new ArrayList<EventShortDto>());
+            compilationDto.setEvents(new ArrayList<>());
         }
         return compilationDto;
     }

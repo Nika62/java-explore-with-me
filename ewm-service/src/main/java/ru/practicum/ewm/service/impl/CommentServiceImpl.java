@@ -5,8 +5,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.dto.comment.CommentDto;
+import ru.practicum.ewm.dto.comment.CommentFullDto;
 import ru.practicum.ewm.dto.comment.CommentUserDto;
+import ru.practicum.ewm.dto.comment.NewCommentDto;
 import ru.practicum.ewm.mapper.CommentMapper;
+import ru.practicum.ewm.mapper.EventMapper;
 import ru.practicum.ewm.model.Comment;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.User;
@@ -23,7 +26,9 @@ import ru.practicum.ewm.service.CommentService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
 import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
 
@@ -41,10 +46,12 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentMapper commentMapper;
 
+    private final EventMapper eventMapper;
+
 
     @Override
-    public CommentDto addComment(long userId, long eventId, String text) {
-        LocalDateTime createdOn = LocalDateTime.now();
+    public CommentDto addComment(long userId, long eventId, NewCommentDto newCommentDto) {
+        LocalDateTime createdOn = convertToDateTime(newCommentDto.getCreatedOn());
         User author = getUserOrException(userId);
         Event event = getEventOrException(eventId);
         checkUserNotInitiator(event, userId);
@@ -52,7 +59,7 @@ public class CommentServiceImpl implements CommentService {
         checkUserAttendedEvent(eventId, userId);
         Comment comment;
         try {
-            comment = commentRepository.save(new Comment(author, text, event, createdOn));
+            comment = commentRepository.save(new Comment(author, newCommentDto.getText(), event, createdOn));
         } catch (DataIntegrityViolationException e) {
             throw new ObjectAlreadyExistsException("Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
         }
@@ -63,18 +70,21 @@ public class CommentServiceImpl implements CommentService {
     public List<CommentUserDto> getCommentsUser(long userId, int from, int size) {
         checkUserExists(userId);
         PageRequest pageRequest = PageRequest.of(from / size, size);
-        return commentRepository.getCommentsByUserId(userId, pageRequest).stream().map(commentMapper::convertCommentToCommentUserDto).collect(Collectors.toList());
+        List<Comment> comments = commentRepository.getCommentsByUserIdOrderById(userId, pageRequest).toList();
+        List<CommentUserDto> commentsDto = comments.stream().map(commentMapper::convertCommentToCommentUserDto).collect(Collectors.toList());
+        addEventInListCommentUserDto(comments, commentsDto);
+        return commentsDto;
     }
 
     @Override
     public List<CommentDto> getCommentsUserToEvent(long userId, long eventId) {
         checkUserExists(userId);
         checkEventExists(eventId);
-        return commentRepository.getCommentsByUserIdAndEventId(userId, eventId).stream().map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList());
+        return commentRepository.getCommentsByUserIdAndEventIdOrderById(userId, eventId).stream().map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList());
     }
 
     @Override
-    public void deleteCommentById(long userId, long eventId, long commentId) {
+    public void deleteCommentByUser(long userId, long eventId, long commentId) {
         checkUserExists(userId);
         checkEventExists(eventId);
         Comment comment = getCommentOrException(commentId);
@@ -92,20 +102,50 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = getCommentOrException(commentId);
         checkUserAuthorComment(comment, userId);
         comment.setText(text);
-        try {
-            return commentMapper.convertCommentToCommentUserDto(commentRepository.save(comment));
-        } catch (DataIntegrityViolationException e) {
-            throw new ObjectAlreadyExistsException("Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
-        }
+        CommentUserDto commentUserDto = commentMapper.convertCommentToCommentUserDto(commentRepository.save(comment));
+        commentUserDto.setEvent(eventMapper.convertEventToEventForCommentDto(comment.getEvent()));
+        return commentUserDto;
+    }
+
+
+    @Override
+    public List<CommentDto> getCommentsEvent(long eventId, int from, int size) {
+        checkEventExists(eventId);
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        return commentRepository.getCommentsByEventIdOrderById(eventId, pageRequest).stream()
+                .map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList());
     }
 
     @Override
-    public void deleteCommentById(long commentId) {
+    public CommentFullDto getCommentByIdAndByEventId(long eventId, long commentId) {
+        checkEventExists(eventId);
+        Comment comment = getCommentOrException(commentId);
+        return getCommentFullDtoWhitEvent(comment);
+    }
 
+    @Override
+    public void deleteCommentByAdmin(long commentId) {
+        checkCommentExists(commentId);
+        commentRepository.deleteById(commentId);
+    }
+
+    @Override
+    public CommentFullDto getCommentById(long commentId) {
+        Comment comment = getCommentOrException(commentId);
+        return getCommentFullDtoWhitEvent(comment);
+    }
+
+    @Override
+    public List<CommentFullDto> getCommentsByAdmin(int from, int size) {
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        List<Comment> comments = commentRepository.findAllByOrderByIdAsc(pageRequest).toList();
+        List<CommentFullDto> commentsDto = comments.stream().map(commentMapper::convertCommentToCommentFullDto).collect(Collectors.toList());
+        addEventInListCommentUserDto(comments, commentsDto);
+        return commentsDto;
     }
 
     private void checkUserAttendedEvent(long eventId, long userId) {
-        if (!requestRepository.existsByEventIdAndUserIdAndStatus(eventId, userId, CONFIRMED.name())) {
+        if (!requestRepository.existsByEventIdAndRequesterIdAndStatus(eventId, userId, CONFIRMED.name())) {
             throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.", "The user is not attended the event",
                     LocalDateTime.now());
         }
@@ -168,5 +208,16 @@ public class CommentServiceImpl implements CommentService {
         if (!commentRepository.existsById(commentId)) {
             throw new ObjectNotFoundException("The required object was not found.", "Comment with id=" + commentId + " was not found.", LocalDateTime.now());
         }
+    }
+
+    private void addEventInListCommentUserDto(List<Comment> comments, List<? extends CommentUserDto> commentsDto) {
+        IntStream.range(0, commentsDto.size())
+                .forEach(i -> commentsDto.get(i).setEvent(eventMapper.convertEventToEventForCommentDto(comments.get(i).getEvent())));
+    }
+
+    private CommentFullDto getCommentFullDtoWhitEvent(Comment comment) {
+        CommentFullDto commentDto = commentMapper.convertCommentToCommentFullDto(comment);
+        commentDto.setEvent(eventMapper.convertEventToEventForCommentDto(comment.getEvent()));
+        return commentDto;
     }
 }

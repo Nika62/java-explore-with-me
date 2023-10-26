@@ -1,19 +1,15 @@
 package ru.practicum.ewm.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
+@AllArgsConstructor
 public class Location {
-    // широта
     private float lat;
 
-    //долготa
     private float lon;
 
-    public Location(float lat, float lon) {
-        this.lat = lat;
-        this.lon = lon;
-    }
 }
