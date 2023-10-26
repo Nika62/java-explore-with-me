@@ -156,8 +156,9 @@ public class CommentServiceImpl implements CommentService {
             throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.", "The user is not the author of the comment",
                     LocalDateTime.now());
         }
-
     }
+
+
     private void checkUserNotInitiator(Event event, long userId) {
         if (event.getInitiator().getId() == userId) {
             throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.",
