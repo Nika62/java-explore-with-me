@@ -18,9 +18,6 @@ import ru.practicum.ewm.model.exception.ObjectAlreadyExistsException;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
 import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
 import ru.practicum.ewm.repository.CommentRepository;
-import ru.practicum.ewm.repository.EventRepository;
-import ru.practicum.ewm.repository.RequestRepository;
-import ru.practicum.ewm.repository.UserRepository;
 import ru.practicum.ewm.service.CommentService;
 
 import java.time.LocalDateTime;
@@ -30,7 +27,6 @@ import java.util.stream.IntStream;
 
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
 
 @Service
 @RequiredArgsConstructor
@@ -38,25 +34,21 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
 
-    private final UserRepository userRepository;
-
-    private final EventRepository eventRepository;
-
-    private final RequestRepository requestRepository;
-
     private final CommentMapper commentMapper;
 
     private final EventMapper eventMapper;
+
+    private final HelperCheckEntity helperCheckEntity;
 
 
     @Override
     public CommentDto addComment(long userId, long eventId, NewCommentDto newCommentDto) {
         LocalDateTime createdOn = convertToDateTime(newCommentDto.getCreatedOn());
-        User author = getUserOrException(userId);
-        Event event = getEventOrException(eventId);
+        User author = helperCheckEntity.getUserOrException(userId);
+        Event event = helperCheckEntity.getEventOrException(eventId);
         checkUserNotInitiator(event, userId);
         checkEventTookPlace(event, createdOn);
-        checkUserAttendedEvent(eventId, userId);
+        helperCheckEntity.checkUserAttendedEvent(eventId, userId);
         Comment comment;
         try {
             comment = commentRepository.save(new Comment(author, newCommentDto.getText(), event, createdOn));
@@ -68,7 +60,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentUserDto> getCommentsUser(long userId, int from, int size) {
-        checkUserExists(userId);
+        helperCheckEntity.checkUserExists(userId);
         PageRequest pageRequest = PageRequest.of(from / size, size);
         List<Comment> comments = commentRepository.getCommentsByUserIdOrderById(userId, pageRequest).toList();
         List<CommentUserDto> commentsDto = comments.stream().map(commentMapper::convertCommentToCommentUserDto).collect(Collectors.toList());
@@ -78,15 +70,15 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDto> getCommentsUserToEvent(long userId, long eventId) {
-        checkUserExists(userId);
-        checkEventExists(eventId);
+        helperCheckEntity.checkUserExists(userId);
+        helperCheckEntity.checkEventExists(eventId);
         return commentRepository.getCommentsByUserIdAndEventIdOrderById(userId, eventId).stream().map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList());
     }
 
     @Override
     public void deleteCommentByUser(long userId, long eventId, long commentId) {
-        checkUserExists(userId);
-        checkEventExists(eventId);
+        helperCheckEntity.checkUserExists(userId);
+        helperCheckEntity.checkEventExists(eventId);
         Comment comment = getCommentOrException(commentId);
         if (comment.getUser().getId() != userId) {
             throw new DeletionBlockedException("For the requested operation the conditions are not met.",
@@ -97,8 +89,8 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentUserDto updateComment(long userId, long eventId, long commentId, String text) {
-        checkUserExists(userId);
-        checkEventExists(eventId);
+        helperCheckEntity.checkUserExists(userId);
+        helperCheckEntity.checkEventExists(eventId);
         Comment comment = getCommentOrException(commentId);
         checkUserAuthorComment(comment, userId);
         comment.setText(text);
@@ -110,7 +102,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDto> getCommentsEvent(long eventId, int from, int size) {
-        checkEventExists(eventId);
+        helperCheckEntity.checkEventExists(eventId);
         PageRequest pageRequest = PageRequest.of(from / size, size);
         return commentRepository.getCommentsByEventIdOrderById(eventId, pageRequest).stream()
                 .map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList());
@@ -118,9 +110,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentFullDto getCommentByIdAndByEventId(long eventId, long commentId) {
-        checkEventExists(eventId);
+        helperCheckEntity.checkEventExists(eventId);
         Comment comment = getCommentOrException(commentId);
-        return getCommentFullDtoWhitEvent(comment);
+        return getCommentFullDtoWithEvent(comment);
     }
 
     @Override
@@ -132,7 +124,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentFullDto getCommentById(long commentId) {
         Comment comment = getCommentOrException(commentId);
-        return getCommentFullDtoWhitEvent(comment);
+        return getCommentFullDtoWithEvent(comment);
     }
 
     @Override
@@ -144,12 +136,7 @@ public class CommentServiceImpl implements CommentService {
         return commentsDto;
     }
 
-    private void checkUserAttendedEvent(long eventId, long userId) {
-        if (!requestRepository.existsByEventIdAndRequesterIdAndStatus(eventId, userId, CONFIRMED.name())) {
-            throw new ObjectNotSatisfyRulesException("For the requested operation the conditions are not met.", "The user is not attended the event",
-                    LocalDateTime.now());
-        }
-    }
+
 
     private void checkUserAuthorComment(Comment comment, long userId) {
         if (comment.getUser().getId() != userId) {
@@ -178,31 +165,9 @@ public class CommentServiceImpl implements CommentService {
         }
     }
 
-    private User getUserOrException(long userId) {
-        return userRepository.findById(userId).orElseThrow(
-                () -> new ObjectNotFoundException("The required object was not found.", "User with id=" + userId + " was not found.", LocalDateTime.now()));
-    }
-
-    private Event getEventOrException(long eventId) {
-        return eventRepository.findById(eventId).orElseThrow(
-                () -> new ObjectNotFoundException("The required object was not found.", "Event with id=" + eventId + " was not found.", LocalDateTime.now()));
-    }
-
     private Comment getCommentOrException(long commentId) {
         return commentRepository.findById(commentId).orElseThrow(
                 () -> new ObjectNotFoundException("The required object was not found.", "Comment with id=" + commentId + " was not found.", LocalDateTime.now()));
-    }
-
-    private void checkUserExists(long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ObjectNotFoundException("The required object was not found.", "User with id=" + userId + " was not found.", LocalDateTime.now());
-        }
-    }
-
-    private void checkEventExists(long eventId) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new ObjectNotFoundException("The required object was not found.", "Event with id=" + eventId + " was not found.", LocalDateTime.now());
-        }
     }
 
     private void checkCommentExists(long commentId) {
@@ -216,7 +181,7 @@ public class CommentServiceImpl implements CommentService {
                 .forEach(i -> commentsDto.get(i).setEvent(eventMapper.convertEventToEventForCommentDto(comments.get(i).getEvent())));
     }
 
-    private CommentFullDto getCommentFullDtoWhitEvent(Comment comment) {
+    private CommentFullDto getCommentFullDtoWithEvent(Comment comment) {
         CommentFullDto commentDto = commentMapper.convertCommentToCommentFullDto(comment);
         commentDto.setEvent(eventMapper.convertEventToEventForCommentDto(comment.getEvent()));
         return commentDto;

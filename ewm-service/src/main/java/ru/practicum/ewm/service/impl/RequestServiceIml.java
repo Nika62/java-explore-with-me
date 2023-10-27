@@ -15,7 +15,6 @@ import ru.practicum.ewm.model.exception.ObjectNotFoundException;
 import ru.practicum.ewm.model.exception.ObjectNotSatisfyRulesException;
 import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.repository.RequestRepository;
-import ru.practicum.ewm.repository.UserRepository;
 import ru.practicum.ewm.service.RequestService;
 
 import java.time.LocalDateTime;
@@ -24,7 +23,9 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
 import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.RequestsStatus.*;
+import static ru.practicum.ewm.model.enums.RequestsStatus.CONFIRMED;
+import static ru.practicum.ewm.model.enums.RequestsStatus.PENDING;
+import static ru.practicum.ewm.model.enums.RequestsStatus.REJECTED;
 
 @Service
 @RequiredArgsConstructor
@@ -33,12 +34,13 @@ public class RequestServiceIml implements RequestService {
     private final RequestRepository requestRepository;
     private final RequestMapper requestMapper;
     private final EventRepository eventRepository;
-    private final UserRepository userRepository;
+
+    private final HelperCheckEntity helperCheckEntity;
 
     @Override
     public RequestDto createRequest(long userId, long eventId) {
         LocalDateTime created = LocalDateTime.now();
-        Event event = getEvent(eventId);
+        Event event = helperCheckEntity.getEventOrException(eventId);
         checkRequestIsValid(event, userId);
         Request request;
         try {
@@ -55,9 +57,7 @@ public class RequestServiceIml implements RequestService {
 
     @Override
     public List<RequestDto> getRequests(long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ObjectNotFoundException("The required object was not found.", "User with id=" + userId + "was not found", LocalDateTime.now());
-        }
+        helperCheckEntity.checkUserExists(userId);
         return requestRepository.getRequestsByRequesterId(userId).stream().map(requestMapper::convertRequestToRequestDto).collect(Collectors.toList());
     }
 
@@ -79,7 +79,7 @@ public class RequestServiceIml implements RequestService {
     @Override
     public EventRequestStatusUpdateResultDto reviewEventRequests(Long userId, Long eventId, EventRequestStatusUpdateRequestDto body) {
         EventRequestStatusUpdateResultDto result = new EventRequestStatusUpdateResultDto();
-        Event event = getEvent(eventId);
+        Event event = helperCheckEntity.getEventOrException(eventId);
         List<Long> requestsIds = body.getRequestIds();
         String status = body.getStatus();
         checkEventLimitNotExceeded(event);
@@ -146,13 +146,6 @@ public class RequestServiceIml implements RequestService {
         checkUserIsInitiator(event, userId);
         checkStateEvenIsPublished(event);
         checkEventLimitNotExceeded(event);
-    }
-
-    private Event getEvent(long eventId) {
-        return eventRepository.findById(eventId).orElseThrow(
-                () -> new ObjectNotFoundException("Integrity constraint has been violated.",
-                        "Event with id=" + eventId + "was not found", LocalDateTime.now())
-        );
     }
 
     private EventRequestStatusUpdateResultDto updateStatusEventRequests(List<Long> allRequests, Long freeSeats, Event event) {
