@@ -3,6 +3,7 @@ package ru.practicum.ewm.mapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.category.CategoryDto;
+import ru.practicum.ewm.dto.event.EventForCommentDto;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.EventShortDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
@@ -12,7 +13,9 @@ import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.Location;
 import ru.practicum.ewm.model.enums.PublicationStatus;
 
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
@@ -22,7 +25,10 @@ import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 public class EventMapper {
 
     private final CategoryMapper categoryMapper;
+
     private final UserMapper userMapper;
+
+    private final CommentMapper commentMapper;
 
     public Event convertNewEventDtoToEvent(NewEventDto newEventDto) {
         if (newEventDto == null) {
@@ -64,6 +70,9 @@ public class EventMapper {
         eventFullDto.setRequestModeration(event.getRequestModeration());
         eventFullDto.setState(PublicationStatus.valueOf(event.getState()));
         eventFullDto.setTitle(event.getTitle());
+        eventFullDto.setComments(Objects.nonNull(event.getComments()) ? event.getComments()
+                .stream().map(commentMapper::convertCommentToCommentDto).collect(Collectors.toList())
+                : new ArrayList<>());
 
         return eventFullDto;
     }
@@ -83,5 +92,18 @@ public class EventMapper {
         eventShortDto.setConfirmedRequests(event.getConfirmedRequests());
 
         return eventShortDto;
+    }
+
+    public EventForCommentDto convertEventToEventForCommentDto(Event event) {
+        if (event == null) {
+            return null;
+        }
+        EventForCommentDto eventForCommentDto = new EventForCommentDto();
+        eventForCommentDto.setId(event.getId());
+        eventForCommentDto.setAnnotation(event.getAnnotation());
+        eventForCommentDto.setEventDate(convertToString(event.getEventDate()));
+        eventForCommentDto.setTitle(event.getTitle());
+
+        return eventForCommentDto;
     }
 }

@@ -1,29 +1,39 @@
 package ru.practicum.ewm.controller.priv;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.ewm.dto.comment.CommentDto;
+import ru.practicum.ewm.dto.comment.CommentUserDto;
+import ru.practicum.ewm.dto.comment.NewCommentDto;
 import ru.practicum.ewm.dto.event.EventFullDto;
 import ru.practicum.ewm.dto.event.NewEventDto;
 import ru.practicum.ewm.dto.request.EventRequestStatusUpdateRequestDto;
 import ru.practicum.ewm.dto.request.EventRequestStatusUpdateResultDto;
 import ru.practicum.ewm.dto.request.RequestDto;
+import ru.practicum.ewm.service.CommentService;
 import ru.practicum.ewm.service.EventService;
 import ru.practicum.ewm.service.RequestService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
+import javax.validation.constraints.Size;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @RequestMapping("/users/{userId}/events")
 @RequiredArgsConstructor
 @RestController
+@Validated
 public class EventControllerPriv {
 
     private final EventService eventService;
     private final RequestService requestService;
+    private final CommentService commentService;
 
     @PostMapping
     @ResponseStatus(CREATED)
@@ -58,4 +68,35 @@ public class EventControllerPriv {
     public EventRequestStatusUpdateResultDto getUserEventRequests(@PathVariable long userId, @PathVariable long eventId, @RequestBody EventRequestStatusUpdateRequestDto body) {
         return requestService.reviewEventRequests(userId, eventId, body);
     }
+
+
+    @PostMapping("/{eventId}/comments")
+    @ResponseStatus(CREATED)
+    public CommentDto addComment(@PathVariable long userId, @PathVariable long eventId, @RequestBody @Valid NewCommentDto commentDto) {
+        return commentService.addComment(userId, eventId, commentDto);
+    }
+
+    @GetMapping("/comments")
+    public List<CommentUserDto> getCommentsUser(@PathVariable long userId, @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+                                                @RequestParam(defaultValue = "10") @Positive int size) {
+        return commentService.getCommentsUser(userId, from, size);
+    }
+
+    @GetMapping("/{eventId}/comments")
+    public List<CommentDto> getCommentsUserToEvent(@PathVariable long userId, @PathVariable long eventId) {
+        return commentService.getCommentsUserToEvent(userId, eventId);
+    }
+
+    @DeleteMapping("/{eventId}/comments/{commentId}")
+    @ResponseStatus(NO_CONTENT)
+    public void deleteCommentById(@PathVariable long userId, @PathVariable long eventId, @PathVariable long commentId) {
+        commentService.deleteCommentByUser(userId, eventId, commentId);
+    }
+
+    @PatchMapping("/{eventId}/comments/{commentId}")
+    public CommentUserDto updateComment(@PathVariable long userId, @PathVariable long eventId, @PathVariable long commentId,
+                                        @RequestBody @NotBlank @Size(min = 10, max = 1000) String text) {
+        return commentService.updateComment(userId, eventId, commentId, text);
+    }
+
 }

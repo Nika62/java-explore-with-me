@@ -17,6 +17,7 @@ public class HitClient {
     private static final String API_PREFIX = "/hit";
     private final RestTemplate restTemplate;
 
+
     public HitClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
 
         this.restTemplate = builder

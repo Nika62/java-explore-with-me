@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.ewm.model.exception.*;
 
+import javax.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,12 @@ public class ErrorHandler {
     @ResponseStatus(BAD_REQUEST)
     public ErrorResponse handleValidationException(final ValidationException e) {
         return new ErrorResponse(getErrors(e), BAD_REQUEST.name(), e.getReason(), e.getMessage(), convertToString(e.getTimestamp()));
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(BAD_REQUEST)
+    public ErrorResponse handleConstraintViolationException(final ConstraintViolationException e) {
+        return new ErrorResponse(getErrors(e), BAD_REQUEST.name(), "Invalid request parameters", e.getMessage(), convertToString(LocalDateTime.now()));
     }
 
     @ExceptionHandler

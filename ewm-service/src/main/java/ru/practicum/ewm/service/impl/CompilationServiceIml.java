@@ -11,7 +11,6 @@ import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
 import ru.practicum.ewm.model.exception.ValidationException;
 import ru.practicum.ewm.repository.CompilationRepository;
-import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.service.CompilationService;
 
 import java.time.LocalDateTime;
@@ -22,13 +21,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+
 @Service
 @RequiredArgsConstructor
 public class CompilationServiceIml implements CompilationService {
 
     private final CompilationRepository compilationRepository;
     private final CompilationMapper compilationMapper;
-    private final EventRepository eventRepository;
+    private final HelperCheckEntity helperCheckEntity;
 
     @Override
     public CompilationDto createCompilation(NewCompilationDto newCompilationDto) {
@@ -83,7 +83,7 @@ public class CompilationServiceIml implements CompilationService {
 
     private void setEventsInCompilation(Compilation compilation, NewCompilationDto newCompilationDto) {
         if (Objects.nonNull(newCompilationDto.getEvents()) && !newCompilationDto.getEvents().isEmpty()) {
-            Set<Event> events = new HashSet<>(eventRepository.getEventsByIdIn(newCompilationDto.getEvents()));
+            Set<Event> events = new HashSet<>(helperCheckEntity.getEventsByIdIn(newCompilationDto.getEvents()));
             compilation.setEvents(events);
         }
     }
