@@ -15,5 +15,8 @@ public class SearchFilterEvent {
     private Optional<Boolean> paid;
     private Optional<String> rangeStart;
     private Optional<String> rangeEnd;
+    private Optional<Float> lat;
+    private Optional<Float> lon;
+    private Optional<Integer> radius;
     private Boolean onlyAvailable;
 }

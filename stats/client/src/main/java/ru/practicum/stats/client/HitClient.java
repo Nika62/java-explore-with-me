@@ -1,6 +1,5 @@
 package ru.practicum.stats.client;
 
-import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
@@ -11,14 +10,13 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.stats.dto.EndpointHitDto;
 
 @Service
-@Log
 public class HitClient {
 
     private static final String API_PREFIX = "/hit";
     private final RestTemplate restTemplate;
 
 
-    public HitClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
+    public HitClient(@Value("http://localhost:9090") String serverUrl, RestTemplateBuilder builder) {
 
         this.restTemplate = builder
                 .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))

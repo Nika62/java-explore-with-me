@@ -41,5 +41,8 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     Optional<Event> getEventByIdAndState(Long id, String state);
 
+    @Query("SELECT e FROM Event e WHERE distanse(?1, ?2, e.locationLat, e.locationLon) <=?3")
+    List<Event> getEventsInPlace(float lat, float lon, int radius);
+
 
 }

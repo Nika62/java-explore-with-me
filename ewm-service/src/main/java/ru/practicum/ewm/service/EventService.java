@@ -27,4 +27,6 @@ public interface EventService {
                                  Optional<String> rangeEnd, Boolean onlyAvailable, Optional<EventSortParameter> sort, int from, int size, HttpServletRequest request);
 
     EventFullDto getEventById(long id, HttpServletRequest request);
+
+    List<EventFullDto> getEventsInPlace(float lat, float lon, int radius);
 }

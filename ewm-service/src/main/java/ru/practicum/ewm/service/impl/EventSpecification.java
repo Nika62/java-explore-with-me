@@ -22,12 +22,14 @@ public class EventSpecification {
 
     protected List<Specification<Event>> searchFilterToSpecifications(SearchFilterEvent filter) {
         List<Specification<Event>> specifications = new ArrayList<>();
-        specifications.add(filter.getText().isEmpty()  ? null : likeText(filter.getText()));
-        specifications.add(filter.getCategories().isEmpty()  ? null : categoryIn(filter.getCategories()));
-        specifications.add(filter.getPaid().isEmpty()  ? null : paidEqualsTo(filter.getPaid()));
+        specifications.add(filter.getText().isEmpty() ? null : likeText(filter.getText()));
+        specifications.add(filter.getCategories().isEmpty() ? null : categoryIn(filter.getCategories()));
+        specifications.add(filter.getPaid().isEmpty() ? null : paidEqualsTo(filter.getPaid()));
         specifications.add(filter.getOnlyAvailable().equals(false) ? null : isOnlyAvailable(filter.getOnlyAvailable()));
-        specifications.add(filter.getRangeStart().isEmpty()  ? greaterThanTimeNow() : greaterThanOrEqualToRangeStart(filter.getRangeStart()));
-        specifications.add(filter.getRangeEnd().isEmpty()  ? null : lessThanOrEqualToRangeEnd(filter.getRangeEnd()));
+        specifications.add(filter.getRangeStart().isEmpty() ? greaterThanTimeNow() : greaterThanOrEqualToRangeStart(filter.getRangeStart()));
+        specifications.add(filter.getRangeEnd().isEmpty() ? null : lessThanOrEqualToRangeEnd(filter.getRangeEnd()));
+        specifications.add(filter.getLat().isEmpty() ? null : filter.getLon().isEmpty() ? null : filter.getRadius().isEmpty() ? null
+                ?)
         specifications.add(equalsPublished());
         return specifications.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
@@ -82,5 +84,11 @@ public class EventSpecification {
 
     private Specification<Event> inStates(Optional<String[]> states) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.in(root.get("state")).value(Arrays.asList(states.get()));
+    }
+
+    private Specification<Event> inPlace(Optional<Float> lat, Optional<Float> lon, Optional<Integer> radius) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.
+
+
     }
 }

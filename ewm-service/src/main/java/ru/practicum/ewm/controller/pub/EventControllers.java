@@ -2,7 +2,11 @@ package ru.practicum.ewm.controller.pub;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.ewm.dto.comment.CommentDto;
 import ru.practicum.ewm.dto.comment.CommentFullDto;
 import ru.practicum.ewm.dto.event.EventFullDto;
@@ -34,8 +38,11 @@ public class EventControllers {
                                         @RequestParam(required = false) Optional<String> rangeEnd,
                                         @RequestParam(defaultValue = "false") Boolean onlyAvailable,
                                         @RequestParam(required = false) Optional<EventSortParameter> sort,
-                                        @RequestParam(defaultValue = "0") int from,
-                                        @RequestParam(defaultValue = "10") int size,
+                                        @RequestParam(required = false) Optional<Float> lat,
+                                        @RequestParam(required = false) Optional<Float> lon,
+                                        @RequestParam(required = false) @Positive Optional<Integer> radius,
+                                        @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+                                        @RequestParam(defaultValue = "10") @Positive int size,
                                         HttpServletRequest request) {
 
         return eventService.getEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size, request);

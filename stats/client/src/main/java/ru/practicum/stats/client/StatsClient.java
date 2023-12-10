@@ -1,6 +1,5 @@
 package ru.practicum.stats.client;
 
-import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
@@ -18,14 +17,13 @@ import java.util.Map;
 import static org.springframework.http.HttpMethod.GET;
 
 @Service
-@Log
 public class StatsClient {
 
     private static final String API_PREFIX = "/stats";
 
     public final RestTemplate restTemplate;
 
-    public StatsClient(@Value("${stats.service.url}") String serverUrl, RestTemplateBuilder builder) {
+    public StatsClient(@Value("http://localhost:9090") String serverUrl, RestTemplateBuilder builder) {
         this.restTemplate = builder
                 .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
                 .requestFactory(HttpComponentsClientHttpRequestFactory::new)
