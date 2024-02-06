@@ -160,6 +160,12 @@ public class EventServiceImpl implements EventService {
         return eventFullDto;
     }
 
+    @Override
+    public List<EventFullDto> getEventsInPlace(float latitude, float longitude, int radius) {
+        return eventRepository.getEventsInPlace(latitude, longitude, radius).stream()
+                .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
+    }
+
     private List<EventFullDto> getEventsByFilterAndSort(List<Specification<Event>> specifications, Optional<EventSortParameter> sort, int from, int size) {
         String sortValue = sort.get().equals(VIEWS) ? "views" : "eventDate";
         Pageable sortedPageable = PageRequest.of(from / size, size, Sort.by(sortValue));
@@ -214,7 +220,7 @@ public class EventServiceImpl implements EventService {
         setCategory(event, newEventDto);
         setDescription(event, newEventDto);
         setEventDate(event, newEventDto);
-        setLocation(event, newEventDto);
+        setEventLocation(event, newEventDto);
         setPaid(event, newEventDto);
         setParticipantLimit(event, newEventDto);
         setRequestModeration(event, newEventDto);
@@ -267,7 +273,7 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private void setLocation(Event event, NewEventDto newEventDto) {
+    private void setEventLocation(Event event, NewEventDto newEventDto) {
         if (Objects.nonNull(newEventDto.getLocation())) {
             event.setLocationLat(newEventDto.getLocation().getLat());
             event.setLocationLon(newEventDto.getLocation().getLon());
