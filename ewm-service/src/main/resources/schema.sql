@@ -20,8 +20,8 @@ create table if not exists events(
 	description text,
 	event_date timestamp not null,
 	user_id BIGINT NOT null,
-	location_lat float8 not null,
-	location_lon float8 not null,
+    location_lat float8 not null,
+    location_lon float8 not null,
 	paid boolean not null,
 	participant_limit integer not null,
 	request_moderation boolean not null,
@@ -73,3 +73,4 @@ create table if not exists comments
     CONSTRAINT fk_comments_event_id FOREIGN KEY (event_id)
         REFERENCES events (id) ON DELETE CASCADE
 );
+

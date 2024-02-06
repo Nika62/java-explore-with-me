@@ -41,5 +41,4 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     Optional<Event> getEventByIdAndState(Long id, String state);
 
-
 }

@@ -37,8 +37,13 @@ import java.util.stream.Collectors;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 import static ru.practicum.ewm.model.enums.EventSortParameter.VIEWS;
-import static ru.practicum.ewm.model.enums.PublicationStatus.*;
-import static ru.practicum.ewm.model.enums.StateAction.*;
+import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
+import static ru.practicum.ewm.model.enums.PublicationStatus.PENDING;
+import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
+import static ru.practicum.ewm.model.enums.StateAction.CANCEL_REVIEW;
+import static ru.practicum.ewm.model.enums.StateAction.PUBLISH_EVENT;
+import static ru.practicum.ewm.model.enums.StateAction.REJECT_EVENT;
+import static ru.practicum.ewm.model.enums.StateAction.SEND_TO_REVIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -133,7 +138,7 @@ public class EventServiceImpl implements EventService {
 
         if (rangeStart.isPresent() && rangeEnd.isPresent()) {
             compareDate(convertToDateTime(rangeStart.get()), convertToDateTime(rangeEnd.get()), "The rangeStart should be before the rangeEnd");
-            }
+        }
         SearchFilterEvent filter = new SearchFilterEvent(text, categories, paid, rangeStart, rangeEnd, onlyAvailable);
         List<Specification<Event>> specifications = eventSpecification.searchFilterToSpecifications(filter);
         addHit(request);
