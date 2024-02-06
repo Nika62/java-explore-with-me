@@ -12,17 +12,12 @@ import ru.practicum.ewm.dto.place.NewPlaceDto;
 import ru.practicum.ewm.dto.place.PlaceFullDto;
 import ru.practicum.ewm.model.exception.ObjectAlreadyExistsException;
 import ru.practicum.ewm.model.exception.ObjectNotFoundException;
-import ru.practicum.ewm.service.PlaceService;
 
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static ru.practicum.ewm.HelperLocationTestEntity.getNewLocationDto;
-import static ru.practicum.ewm.HelperLocationTestEntity.getNewLocationDto2;
-import static ru.practicum.ewm.HelperLocationTestEntity.getNewLocationDto3;
+import static org.junit.jupiter.api.Assertions.*;
+import static ru.practicum.ewm.HelperLocationTestEntity.*;
 
 @SpringBootTest
 @AutoConfigureTestDatabase

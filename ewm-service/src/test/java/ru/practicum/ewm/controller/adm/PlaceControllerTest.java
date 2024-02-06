@@ -9,7 +9,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.ewm.dto.place.NewPlaceDto;
 import ru.practicum.ewm.dto.place.PlaceFullDto;
-import ru.practicum.ewm.service.PlaceService;
 import ru.practicum.stats.client.HitClient;
 import ru.practicum.stats.client.StatsClient;
 
@@ -17,17 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ru.practicum.ewm.HelperLocationTestEntity.getLocationDtoWithoutName;
-import static ru.practicum.ewm.HelperLocationTestEntity.getLocationFullDto;
-import static ru.practicum.ewm.HelperLocationTestEntity.getNewLocationDto;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static ru.practicum.ewm.HelperLocationTestEntity.*;
 
 @WebMvcTest(controllers = PlaceController.class)
 class PlaceControllerTest {

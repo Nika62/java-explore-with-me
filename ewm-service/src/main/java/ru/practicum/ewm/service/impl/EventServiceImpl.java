@@ -37,13 +37,8 @@ import java.util.stream.Collectors;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToDateTime;
 import static ru.practicum.ewm.mapper.DateTimeMapper.convertToString;
 import static ru.practicum.ewm.model.enums.EventSortParameter.VIEWS;
-import static ru.practicum.ewm.model.enums.PublicationStatus.CANCELED;
-import static ru.practicum.ewm.model.enums.PublicationStatus.PENDING;
-import static ru.practicum.ewm.model.enums.PublicationStatus.PUBLISHED;
-import static ru.practicum.ewm.model.enums.StateAction.CANCEL_REVIEW;
-import static ru.practicum.ewm.model.enums.StateAction.PUBLISH_EVENT;
-import static ru.practicum.ewm.model.enums.StateAction.REJECT_EVENT;
-import static ru.practicum.ewm.model.enums.StateAction.SEND_TO_REVIEW;
+import static ru.practicum.ewm.model.enums.PublicationStatus.*;
+import static ru.practicum.ewm.model.enums.StateAction.*;
 
 @Service
 @RequiredArgsConstructor
@@ -160,11 +155,6 @@ public class EventServiceImpl implements EventService {
         return eventFullDto;
     }
 
-    @Override
-    public List<EventFullDto> getEventsInPlace(float latitude, float longitude, int radius) {
-        return eventRepository.getEventsInPlace(latitude, longitude, radius).stream()
-                .map(mapper::convertEventToEventFullDto).collect(Collectors.toList());
-    }
 
     private List<EventFullDto> getEventsByFilterAndSort(List<Specification<Event>> specifications, Optional<EventSortParameter> sort, int from, int size) {
         String sortValue = sort.get().equals(VIEWS) ? "views" : "eventDate";
